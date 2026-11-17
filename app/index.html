@@ -1,0 +1,1686 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>PostCheck</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Direction (brand.md, 2026-11-17): a precise, quiet tool. Inter throughout, near-black Ink, one Blue accent,
+   hairline dividers, 8 px corners, flat surfaces. The only warm color is the Source tag that quotes the flyer:
+   on Review, each field shows the words on the flyer it came from. One light look. */
+:root {
+  --page: #07090C;        /* around the app */
+  --paper: #0E1117;       /* the app surface */
+  --board: #161B22;       /* raised: hover rows, quiet panels */
+  --ink: #ECEEF2;         /* 16.3:1 on paper */
+  --muted: #9BA4B4;       /* ink 2: 7.5:1 */
+  --faint: #6B7383;       /* ink 3: placeholders only */
+  --rule: #232933;        /* hairline */
+  --rule-strong: #343B47;
+  --blue: #5B93FF;        /* the one accent as text: links, checks, focus (6.4:1) */
+  --blue-btn: #2563EB;    /* the one accent as a fill: primary button, badge (white text 5.2:1) */
+  --blue-deep: #1D4FD0;   /* hover and pressed fills */
+  --blue-tint: #14213A;
+  --blue-tint-ink: #9CBEFF;
+  --source: #F6A890; --source-bg: #2A1712; --source-edge: #E5533F;  /* the flyer, never the UI */
+  --amber: #F2B661; --amber-bg: #2A1E0B; --amber-edge: #5E4318;
+  --red: #FF8A80; --red-bg: #2A1215; --red-edge: #5C2228;
+  --tick-bg: var(--blue-tint);
+  --scrim: rgba(0, 0, 0, .6);
+  /* names the script uses inline */
+  --white: var(--paper); --mist: var(--board); --line: var(--rule); --graphite: var(--muted); --on-blue: #FFFFFF;
+  --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: var(--sans); --body: var(--sans);
+  --r: 8px; --r-sm: 4px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 400 15px/1.55 var(--sans);
+  font-feature-settings: "cv11", "ss01", "tnum";
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: var(--r-sm); }
+p { margin: 0; }
+
+.app { max-width: 440px; min-height: 100%; margin: 0 auto; background: var(--paper); display: flex; flex-direction: column; }
+@media (min-width: 520px) {
+  body { padding-block: 32px; }
+  .app { border-radius: 20px; overflow: hidden; box-shadow: 0 0 0 1px var(--rule), 0 32px 64px -24px rgba(0, 0, 0, .8); }
+}
+
+/* top bar */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; align-items: center; gap: 8px; min-height: 56px; padding-block: 6px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(14, 17, 23, .85); backdrop-filter: saturate(1.6) blur(12px); border-bottom: 1px solid var(--rule);
+}
+.bar h1 { flex: 1; margin: 0; font: 600 15px/1.2 var(--sans); letter-spacing: -0.01em; text-align: center; }
+.bar .side { min-width: 72px; display: flex; white-space: nowrap; }
+.bar .side.right { justify-content: flex-end; }
+.link-btn { background: none; border: 0; padding: 8px 0; color: var(--blue); font: 500 14px/1 var(--sans); }
+.link-btn:hover { color: var(--blue-deep); }
+
+/* home header: white, no band */
+.hero { position: relative; background: var(--paper); color: var(--ink); padding: 24px max(24px, env(safe-area-inset-right, 0px)) 8px max(24px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 20px; }
+.hero .org-btn { padding: 0 0 18px; border-bottom: 1px solid var(--rule); }
+.hero .h-display { margin-top: 8px; }
+.hero .lede { color: var(--muted); font-size: 15px; line-height: 1.6; max-width: 30em; margin-top: -8px; }
+.hero .btn.primary { width: 100%; }
+
+/* intro and sign-in */
+.pro { flex: 1; display: flex; flex-direction: column; gap: 32px; padding: 36px max(24px, env(safe-area-inset-right, 0px)) 28px max(24px, env(safe-area-inset-left, 0px)); }
+@media (prefers-reduced-motion: no-preference) { .pro { animation: enter .3s ease-out; } }
+.lockup { display: flex; align-items: center; gap: 9px; }
+.lockup b { font: 600 16px/1 var(--sans); letter-spacing: -0.015em; color: var(--ink); }
+.pro h1 { margin: 0; font: 600 26px/1.2 var(--sans); letter-spacing: -0.025em; color: var(--ink); text-wrap: balance; }
+.pro .intro-copy { display: flex; flex-direction: column; gap: 10px; }
+.pro .intro-copy p { font-size: 15px; line-height: 1.6; color: var(--muted); max-width: 34em; }
+.features { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.features li { display: grid; grid-template-columns: 20px 1fr; column-gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.features li > span:first-child { color: var(--blue); grid-row: span 2; margin-top: 2px; }
+.features b { font: 500 14.5px/1.4 var(--sans); color: var(--ink); }
+.features .caption { font-size: 13.5px; }
+.pro .actions { gap: 10px; }
+.fine-print { font-size: 12px; line-height: 1.5; color: var(--muted); text-align: center; margin-top: 4px !important; }
+.form-group { display: flex; flex-direction: column; gap: 18px; }
+.form-group + .form-group { border-top: 1px solid var(--rule); padding-top: 28px; }
+.form-group h2 { margin: 0; font: 600 13px/1.2 var(--sans); color: var(--ink); }
+.pro .field { gap: 6px; }
+.pro .field label { font: 500 13.5px/1.3 var(--sans); color: var(--ink); }
+.pro .field .hint { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.opt { font-weight: 400; color: var(--muted); }
+.field-error { margin: 0; font: 500 12.5px/1.4 var(--sans); color: var(--red); }
+.notice { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.notice > span { margin-top: 1px; }
+
+.screen {
+  flex: 1; display: flex; flex-direction: column; gap: 24px;
+  padding-block: 24px 32px;
+  padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .screen { animation: enter .3s ease-out; }
+  @keyframes enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+.h-display { margin: 0; font: 600 30px/1.15 var(--sans); letter-spacing: -0.03em; text-wrap: balance; }
+.h-title { margin: 0; font: 600 22px/1.25 var(--sans); letter-spacing: -0.02em; text-wrap: balance; }
+.label { font: 500 14px/1.3 var(--sans); }
+.caption { font-size: 13px; line-height: 1.45; color: var(--muted); margin: 0; }
+.muted { color: var(--muted); }
+.fine { text-align: center; }
+.sec-h { margin: 0; font: 600 13px/1.2 var(--sans); color: var(--muted); }
+
+/* buttons: one Blue primary per screen */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 0 20px; border-radius: var(--r); border: 0;
+  font: 500 15px/1 var(--sans); letter-spacing: -0.005em;
+  transition: background-color .15s, box-shadow .15s, color .15s;
+}
+.btn.primary { background: var(--blue-btn); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); }
+.btn.primary:hover { background: var(--blue-deep); }
+.btn.primary:active { background: #1740A8; }
+.btn.primary:disabled { background: var(--board); color: var(--faint); box-shadow: inset 0 0 0 1px var(--rule); cursor: not-allowed; }
+.btn.secondary { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--rule-strong); }
+.btn.secondary:hover { background: var(--board); }
+.btn.secondary:active { background: var(--rule); }
+.btn.quiet { background: none; color: var(--blue); min-height: 44px; }
+.btn.quiet:hover { color: var(--blue-deep); background: var(--board); }
+.btn.block { width: 100%; }
+.actions { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+
+/* notes sit on a line, not in a box */
+.pilot { display: flex; gap: 8px; align-items: flex-start; border-top: 1px solid var(--rule); padding-top: 16px; }
+.pilot > span { margin-top: 1px; }
+.pilot .caption { font-size: 12.5px; }
+
+.org-btn { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; padding: 0; text-align: left; color: inherit; }
+.badge { flex: none; width: 40px; height: 40px; border-radius: 6px; background: var(--blue-btn); display: grid; place-items: center; }
+.org-btn .who { flex: 1; min-width: 0; }
+.org-btn .who b { display: block; font: 600 15px/1.3 var(--sans); letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.org-btn:hover .who b { color: var(--blue); }
+
+/* lists */
+.list { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+.row {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px;
+  background: none; border: 0; border-bottom: 1px solid var(--rule);
+  padding: 14px 0; text-align: left; color: inherit;
+  transition: background-color .15s;
+}
+button.row:hover { background: var(--board); box-shadow: -24px 0 0 var(--board), 24px 0 0 var(--board); }
+.row .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row .txt b { font: 500 15px/1.35 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .ico { flex: none; width: 24px; display: grid; place-items: center; color: var(--muted); }
+.row .go { font: 500 13px/1 var(--sans); color: var(--blue); white-space: nowrap; }
+.pill { display: inline-block; font: 500 11px/1 var(--sans); padding: 3px 6px; border-radius: var(--r-sm); background: var(--board); color: var(--muted); box-shadow: inset 0 0 0 1px var(--rule); vertical-align: 2px; margin-left: 8px; }
+.empty { border: 1px dashed var(--rule-strong); border-radius: var(--r); padding: 22px 16px; text-align: center; }
+
+/* inputs */
+textarea, input[type="text"], input[type="email"], input[type="number"], input[type="date"], input[type="time"], input[type="search"], select {
+  width: 100%; min-height: 46px; padding: 10px 12px;
+  border: 1px solid var(--rule-strong); border-radius: var(--r); background: var(--paper);
+  font: 400 15px/1.4 var(--sans); background: #0A0D12;
+  transition: border-color .15s, box-shadow .15s;
+}
+textarea { min-height: 180px; resize: vertical; line-height: 1.55; }
+input:hover, textarea:hover, select:hover { border-color: #4A5260; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(91, 147, 255, .22); }
+input::placeholder, textarea::placeholder { color: var(--faint); }
+input[aria-invalid="true"] { border-color: var(--red); }
+.field { display: flex; flex-direction: column; gap: 8px; }
+
+/* reading */
+.reading { display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; padding-top: 8px; }
+.scan { position: relative; width: 220px; max-width: 100%; border-radius: var(--r); overflow: hidden; background: var(--board); box-shadow: 0 0 0 1px var(--rule), 0 12px 24px -16px rgba(17, 24, 39, .3); }
+.scan img { display: block; width: 100%; }
+.scan .textcard { padding: 18px; font: 400 13.5px/1.55 var(--sans); text-align: left; white-space: pre-wrap; max-height: 260px; overflow: hidden; color: var(--ink); background: var(--paper); }
+.scan::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--blue); box-shadow: 0 0 12px 2px rgba(22, 88, 214, .45); top: 4%; }
+@media (prefers-reduced-motion: no-preference) {
+  .scan::after { animation: scan 1.6s ease-in-out infinite alternate; }
+  @keyframes scan { from { top: 4%; } to { top: 94%; } }
+}
+
+/* questions */
+.progress { display: flex; gap: 4px; }
+.progress i { height: 3px; flex: 1; border-radius: 2px; background: var(--rule); }
+.progress i.on { background: var(--blue); }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  min-height: 52px; padding: 12px 16px; border: 1px solid var(--rule-strong); border-radius: var(--r);
+  background: var(--paper); text-align: left; font: 500 15px/1.3 var(--sans); color: var(--ink);
+  transition: border-color .15s, background-color .15s;
+}
+.choice:hover { background: var(--board); }
+.choice[aria-pressed="true"] { background: var(--blue-tint); border-color: var(--blue); color: var(--blue-tint-ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { min-height: 34px; padding: 6px 12px; border-radius: var(--r-sm); border: 1px solid var(--rule-strong); background: var(--paper); font: 500 13px/1 var(--sans); color: var(--ink); transition: background-color .15s, border-color .15s, color .15s; }
+.chip:hover { background: var(--board); }
+.chip[aria-pressed="true"] { background: var(--blue-tint); border-color: var(--blue); color: var(--blue-tint-ink); }
+.loc-list { max-height: 300px; overflow: auto; border-top: 1px solid var(--rule); }
+.loc-list .row { padding: 10px 4px; min-height: 48px; }
+.loc-list .row .txt b { font-size: 14px; }
+.quoted { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+
+/* source tags: the signature. The exact words from the flyer, straight, never tilted. */
+.scrap {
+  display: inline-block; max-width: 100%; background: var(--source-bg); color: var(--source);
+  font: 500 13px/1.3 var(--sans); padding: 3px 8px; border-radius: var(--r-sm); box-shadow: inset 2px 0 0 var(--source-edge);
+  overflow-wrap: anywhere;
+}
+.scrap.typed { background: var(--blue-tint); color: var(--blue-tint-ink); box-shadow: inset 2px 0 0 var(--blue); }
+
+/* review */
+.summary { display: flex; align-items: center; gap: 10px; border-radius: var(--r); padding: 12px 14px; background: var(--blue-tint); color: var(--blue-tint-ink); }
+.summary .label { font-size: 14px; }
+.summary.warn { background: var(--amber-bg); color: var(--amber); }
+.group-h { margin: 20px 0 0; padding-bottom: 8px; font: 600 13px/1.2 var(--sans); color: var(--muted); border-bottom: 1px solid var(--rule); }
+.fields { display: flex; flex-direction: column; border-top: 1px solid var(--rule); }
+.f { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--rule); align-items: flex-start; }
+.f.flag { background: var(--amber-bg); margin: 0 -24px; padding-left: 24px; padding-right: 24px; border-bottom-color: var(--amber-edge); }
+.f .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; background: none; border: 0; padding: 0; text-align: left; color: inherit; }
+.f .k { font: 500 12.5px/1.2 var(--sans); color: var(--muted); }
+.f.flag .k { color: var(--amber); }
+.f .v { font: 600 16px/1.4 var(--sans); letter-spacing: -0.01em; overflow-wrap: anywhere; white-space: pre-wrap; }
+.f .v.blank { color: var(--amber); font-weight: 500; }
+.f .v.desc { font: 400 14.5px/1.55 var(--sans); letter-spacing: 0; }
+.f .body:hover .v { color: var(--blue); }
+.src { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; font: 500 12.5px/1.3 var(--sans); color: var(--muted); }
+.src.asked { color: var(--amber); }
+.crop { display: block; height: 36px; max-width: 200px; border-radius: var(--r-sm); border: 1px solid var(--rule); background: var(--paper); padding: 0; overflow: hidden; }
+.crop:hover { border-color: var(--blue); }
+.crop canvas { display: block; height: 100%; width: auto; }
+.thumb { width: 52px; height: 68px; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--rule); }
+.ck {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--amber);
+  background: var(--paper); display: grid; place-items: center; padding: 0; margin-top: 4px;
+  transition: background-color .15s, border-color .15s;
+}
+.ck:hover { background: var(--amber-bg); }
+.ck svg { width: 16px; height: 16px; }
+.ck path { stroke: var(--amber); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 20; stroke-dashoffset: 20; }
+.ck.on { border-color: var(--blue-btn); background: var(--blue-btn); }
+.ck.on path { stroke: #fff; stroke-dashoffset: 0; transition: stroke-dashoffset .25s ease-out; }
+.ok-mark { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--blue-tint); display: grid; place-items: center; margin-top: 4px; color: var(--blue); }
+.ok-mark svg { width: 16px; height: 16px; }
+.ok-mark path { stroke: currentColor; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sticky-foot {
+  position: sticky; bottom: 0; z-index: 4; margin: 0 -24px -32px;
+  padding: 12px 24px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: rgba(14, 17, 23, .9); backdrop-filter: blur(12px); border-top: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.checks { display: flex; flex-direction: column; gap: 8px; }
+.chk { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r); background: var(--amber-bg); color: var(--ink); font-size: 13.5px; line-height: 1.5; }
+.chk.block { background: var(--red-bg); box-shadow: inset 0 0 0 1px var(--red-edge); }
+.chk p { flex: 1; min-width: 0; }
+.chk b { font: 600 13.5px/1.4 var(--sans); }
+.chk > span { margin-top: 2px; }
+
+/* posted */
+.done { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding-top: 16px; }
+.seal { width: 64px; height: 64px; }
+.seal svg { width: 100%; height: 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .seal { animation: pop .3s ease-out both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+  .seal .tickpath { stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .25s .2s ease-out forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+}
+.copy-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.copy-row .txt { flex: 1; min-width: 0; }
+.copy-row .caption { font: 500 12.5px/1.2 var(--sans); }
+.copy-row .v { font: 500 14.5px/1.45 var(--sans); overflow-wrap: anywhere; white-space: pre-wrap; margin-top: 3px; }
+.copy-btn { flex: none; background: var(--paper); border: 1px solid var(--rule-strong); border-radius: 6px; padding: 6px 10px; font: 500 12.5px/1.2 var(--sans); color: var(--ink); transition: background-color .15s; }
+.copy-btn:hover { background: var(--board); }
+.error { background: var(--red-bg); box-shadow: inset 0 0 0 1px var(--red-edge); color: var(--red); border-radius: var(--r); padding: 12px 14px; font: 500 14px/1.45 var(--sans); }
+
+/* results */
+.stats { display: grid; grid-template-columns: 1fr; border-top: 1px solid var(--rule); }
+.stat { display: grid; grid-template-columns: auto 1fr; column-gap: 16px; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.stat b { grid-row: span 2; font: 600 26px/1 var(--sans); letter-spacing: -0.03em; color: var(--ink); min-width: 3.6em; }
+.stat .label { font-size: 14px; }
+
+/* sheets */
+.scrim { position: fixed; inset: 0; z-index: 20; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: 100%; max-width: 440px; max-height: 88%; overflow: auto;
+  background: var(--paper); border-radius: 16px 16px 0 0; box-shadow: 0 0 0 1px var(--rule), 0 -16px 40px -12px rgba(0, 0, 0, .7);
+  padding: 20px 24px calc(22px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 16px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scrim { animation: fade .2s ease-out; }
+  .sheet { animation: up .25s ease-out; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes up { from { transform: translateY(16px); opacity: 0; } }
+}
+.zoom { position: relative; overflow: hidden; border-radius: var(--r); background: var(--board); }
+.zoom .inner { position: relative; transition: transform .3s ease-out; }
+.zoom img { display: block; width: 100%; }
+.zoom .hl { position: absolute; border: 2px solid var(--blue); border-radius: var(--r-sm); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .5); }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; background: #222A35; color: var(--ink); border: 1px solid var(--rule-strong); padding: 10px 16px; border-radius: var(--r); font: 500 14px/1.2 var(--sans); box-shadow: 0 12px 24px -12px rgba(17, 24, 39, .5); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+body.dragging .app { outline: 2px dashed var(--blue); outline-offset: -10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .ck.on path { stroke-dashoffset: 0; }
+}
+</style>
+
+<div class="app" id="app" aria-live="polite"></div>
+<input type="file" id="pick-camera" class="sr" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
+<input type="file" id="pick-file" class="sr" accept="image/png,image/jpeg,image/webp,application/pdf" tabindex="-1" aria-hidden="true">
+
+<script>
+"use strict";
+
+/* ---------- Reference lists (sample lists until EngageXU access is granted) ---------- */
+/* Event types exactly as EngageXU's Create Event form lists them (from the form itself, Nov 17, 2026). */
+const TYPES = ["Banquet/Gala", "Ceremony", "Class/Instruction", "Competition", "Conference", "Dance", "Display/Exhibit", "Demonstration/Rally", "Educational Program", "Election", "Fair/Expo", "Film/Movie", "Fitness Activity", "Fundraiser", "Info Session", "Info Table", "Meeting", "Performance", "Prayer", "Retreat", "Social Program", "Speaker/Lecture", "Sporting Event", "Student Interaction/Tracking", "Ticket Sale", "Training/Workshop", "Trip", "Volunteer/Service Opportunity"];
+/* Older builds used made-up types. Map them so past posts and saved drafts still work. */
+const OLD_TYPES = { "General meeting": "Meeting", "Speaker or lecture": "Speaker/Lecture", "Social": "Social Program", "Workshop": "Training/Workshop", "Service": "Volunteer/Service Opportunity", "Career or networking": "Educational Program", "Sports and recreation": "Sporting Event" };
+const TAGS = ["Free food", "Speaker", "Career", "Networking", "Social", "Academic", "Service", "Cultural", "Spiritual", "Wellness", "Arts", "Sports", "Leadership", "Meeting", "All majors", "Business", "Fundraiser"];
+const LOCATIONS = [
+  "Alter Hall", "Bellarmine Chapel", "Cintas Center", "Conaton Learning Commons", "Fenwick Place",
+  "Gallagher Student Center", "Gallagher Student Center · Theater", "Gallagher Student Center · Room 250",
+  "Hailstones Hall", "Health United Building", "Hinkle Hall", "Logan Hall", "Schott Hall",
+  "Smith Hall", "Smith Hall · Room 204", "Smith Hall · Room 210", "Smith Hall · Room 302",
+  "Alter Hall · Room 102", "Conaton Learning Commons · Room 400", "Academic Mall (outdoors)"
+];
+const RSVP = ["No registration", "RSVP required", "RSVP required, limited spots"];
+const YESNO = ["Yes", "No"];
+
+const FIELDS = [
+  /* In the order and wording of EngageXU's Create Event form (sections 1 What to 7 Registration Options).
+     The last two groups aren't on that form: EngageXU shows an approval form after "Create Event", which
+     PostCheck hasn't seen yet, and the organization details are kept for that form and for your records. */
+  { k: "title", label: "Event Name", kind: "text", req: true, group: "1 What", q: "The flyer doesn't name the event. What's it called?" },
+  { k: "description", label: "Description", kind: "longtext", req: true, group: "1 What", q: "Write a line or two about the event." },
+  { k: "type", label: "Event Type", kind: "choice", options: TYPES, req: true, group: "1 What", q: "Which EngageXU event type fits best?" },
+  { k: "tags", label: "Event Tags", kind: "tags", req: true, group: "1 What", q: "Pick tags so people can find it." },
+  { k: "date", label: "Start Date", kind: "date", req: true, group: "2 When", q: "No date on the flyer. What day is it?" },
+  { k: "start", label: "Start Time", kind: "time", req: true, group: "2 When", q: "No start time on the flyer. When does it start?" },
+  { k: "end", label: "End Time", kind: "time", req: true, group: "2 When", q: "No end time on the flyer. When does it end?" },
+  { k: "location", label: "Location Name", kind: "location", req: true, group: "3 Where", q: "No place on the flyer. Where is it?" },
+  { k: "image", label: "Event Photo and Flyer", kind: "image", req: false, group: "4 Photo & Flyer" },
+  { k: "food", label: "Food Provided", kind: "choice", options: YESNO, req: true, group: "5 More Details", q: "Will food be served?" },
+  { k: "rsvp", label: "Registration", kind: "choice", options: RSVP, req: true, group: "7 Registration Options", q: "Do people need to register?" },
+  { k: "guests", label: "Open to guests from outside Xavier?", kind: "choice", options: YESNO, req: true, group: "Approval form", q: "Is it open to guests from outside Xavier?" },
+  { k: "attendance", label: "Expected attendance", kind: "number", req: true, group: "Approval form", q: "About how many people do you expect?" },
+  { k: "money", label: "Will money be collected?", kind: "choice", options: YESNO, req: true, group: "Approval form", q: "Will money be collected?" },
+  { k: "host", label: "Hosted by", kind: "text", req: true, group: "Your organization", q: "Which organization is hosting?" },
+  { k: "contact", label: "Contact email", kind: "email", req: true, group: "Your organization", q: "What email should people contact?" },
+  { k: "advisor", label: "Advisor", kind: "text", req: true, group: "Your organization", q: "Who is your organization's advisor?" }
+];
+const FIELD = Object.fromEntries(FIELDS.map(f => [f.k, f]));
+const GROUP_NOTES = {
+  "Approval form": "EngageXU asks its approval questions on a separate form after you press Create Event. PostCheck hasn't seen that form yet, so these are the questions it expects.",
+  "Your organization": "Not on EngageXU's event form. Kept for the approval form and for your records."
+};
+
+/* What to type or pick in each EngageXU control, in the order of its Create Event form. */
+function pasteRows(v) {
+  const pad = n => String(n).padStart(2, "0");
+  const dt = parseISO(v.date);
+  const clock = t => { const s = splitTime(t); return s ? `${pad(s.h)} : ${s.m} ${s.ap}` : ""; };
+  const onCampus = v.location && LOCATIONS.some(l => l.split(" · ")[0] === String(v.location).split(" · ")[0]);
+  const rows = [
+    ["1 What", "Event Name", v.title], ["1 What", "Description", v.description],
+    ["1 What", "Event Type", v.type], ["1 What", "Event Tags", isEmpty(v.tags) ? "" : v.tags.join(", "), "Pick the closest tags EngageXU offers."],
+    ["2 When", "Start Date", dt ? `${pad(dt.getMonth() + 1)}/${pad(dt.getDate())}/${dt.getFullYear()}` : "", fmtDate(v.date)],
+    ["2 When", "Start Time", clock(v.start), "Hour, minute and AM/PM"], ["2 When", "End Time", clock(v.end), "Leave End Date blank for a one-day event."],
+    ["2 When", "Time Zone", "Eastern Time (US & Canada)", "Usually already set."],
+    ["3 Where", "Type", v.location ? (onCampus ? "On-Campus" : "Check: On-Campus, Off-Campus or Online Only") : ""],
+    ["3 Where", "Location Name", v.location],
+    ["4 Photo & Flyer", "Describe the image", v.title ? `Flyer for ${v.title}: ${[fmtWhen(v), v.location].filter(Boolean).join(", ")}.` : "", "Required for the photo and the flyer. Upload the flyer as PNG or JPG."],
+    ["5 More Details", "Food Provided", v.food === "Yes" ? "Check the box" : v.food === "No" ? "Leave it unchecked" : ""],
+    ["7 Registration Options", "Do you want to let people register?", v.rsvp ? (v.rsvp === "No registration" ? "No" : "Yes") : "", v.rsvp === "RSVP required, limited spots" ? "Then set an Attendance limit." : null],
+    ["Approval form", "Open to guests from outside Xavier?", v.guests], ["Approval form", "Expected attendance", v.attendance], ["Approval form", "Will money be collected?", v.money],
+    ["Your organization", "Hosted by", v.host], ["Your organization", "Contact email", v.contact], ["Your organization", "Advisor", v.advisor]
+  ];
+  return rows.filter(r => !isEmpty(r[2])).map(([section, label, text, how]) => ({ section, label, text: String(text), how: how || null }));
+}
+const ORG_KEYS = { host: "name", contact: "email", advisor: "advisor" };
+
+/* ---------- Saved state (this browser only) ---------- */
+const STORE_KEY = "postcheck.v1";
+const EXAMPLE_ORG = { name: "Marketing Club", advisor: "Prof. Jordan Hale", email: "marketingclub@example.edu", room: "Smith Hall · Room 204", example: true };
+const EXAMPLE_HISTORY = [
+  { id: "ex1", example: true, postedAt: "2026-11-05", values: { title: "General body meeting", host: "Marketing Club", description: "Our weekly meeting. Updates on the spring case competition and a short résumé workshop.", type: "Meeting", date: "2026-11-05", start: "18:00", end: "19:00", location: "Smith Hall · Room 204", tags: ["Meeting", "Career"], contact: "marketingclub@example.edu", advisor: "Prof. Jordan Hale", rsvp: "No registration", food: "No", guests: "No", attendance: "25", money: "No" } },
+  { id: "ex2", example: true, postedAt: "2026-10-22", values: { title: "Brand teardown night", host: "Marketing Club", description: "Bring a logo you love or hate. We take apart three brands in an hour. Free cookies.", type: "Training/Workshop", date: "2026-10-29", start: "19:00", end: "20:00", location: "Gallagher Student Center · Room 250", tags: ["Free food", "Arts", "Business"], contact: "marketingclub@example.edu", advisor: "Prof. Jordan Hale", rsvp: "RSVP required", food: "Yes", guests: "No", attendance: "40", money: "No" } }
+];
+/* Saved data can be from an older build, edited by hand, or half-written. Keep only what the app can use. */
+function cleanSaved(x) {
+  x = x && typeof x === "object" ? x : {};
+  const org = x.org && typeof x.org === "object" ? x.org : EXAMPLE_ORG;
+  if (x.user && (typeof x.user !== "object" || !x.user.name)) { x = Object.assign({}, x); delete x.user; }
+  const history = Array.isArray(x.history)
+    ? x.history.filter(e => e && typeof e === "object" && e.values && typeof e.values === "object")
+        .map(e => Object.assign({}, e, { values: Object.assign({}, e.values, { tags: Array.isArray(e.values.tags) ? e.values.tags : [], type: OLD_TYPES[e.values.type] || e.values.type }) }))
+    : EXAMPLE_HISTORY;
+  return Object.assign({}, x, { org, history });
+}
+function loadSaved() { try { const raw = localStorage.getItem(STORE_KEY); return cleanSaved(raw ? JSON.parse(raw) : null); } catch (e) { return cleanSaved(null); } }
+let saved = loadSaved();
+let warnedFull = false;
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(saved)); return true; }
+  catch (e) {
+    // Usually a full or blocked storage. Say so once instead of silently losing posts.
+    if (!warnedFull) { warnedFull = true; setTimeout(() => toast("Couldn't save on this device. Export your results to keep them."), 0); }
+    return false;
+  }
+}
+/* Another tab saved a post or new org details: pick them up so this tab doesn't overwrite them. */
+window.addEventListener("storage", e => { if (e.key === STORE_KEY) { saved = loadSaved(); if (["home", "add", "past", "results", "org"].includes(S.screen)) render(); } });
+/* First open shows the intro. Anyone who already saved real org details (before sign-in existed) skips it. */
+const needsIntro = () => !saved.user && !saved.lookingAround && (!saved.org || saved.org.example);
+
+/* ---------- App state ---------- */
+const S = { screen: "home", draft: null, queue: [], qi: 0, ctl: null, error: null, posting: false, lastPost: null };
+let sampleFn = null, canImages = false, claudeChecked = false;
+
+/* ---------- Helpers ---------- */
+const $app = document.getElementById("app");
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "html") el.innerHTML = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : String(kid));
+  return el;
+}
+const ICONS = {
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  chev: '<path d="M9 5l7 7-7 7"/>',
+  camera: '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  file: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/>',
+  text: '<path d="M5 6h14M5 10h14M5 14h10M5 18h7"/>',
+  repeat: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+  spark: '<path d="M12 4v4M12 16v4M4 12h4M16 12h4"/>'
+};
+function icon(name, size = 22, color = "currentColor") {
+  return h("span", { "aria-hidden": "true", style: "display:inline-grid;line-height:0", html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>` });
+}
+function badgeEl(size = 40) {
+  return h("span", { class: "badge", style: `width:${size}px;height:${size}px;border-radius:${Math.round(size * .22)}px`, "aria-hidden": "true", html: `<svg viewBox="0 0 24 24" fill="none" stroke="var(--on-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:${size * .6}px;height:${size * .6}px">${ICONS.check}</svg>` });
+}
+const isEmpty = v => v == null || v === "" || (Array.isArray(v) && v.length === 0);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function parseISO(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof d === "string" ? d : "");
+  if (!m) return null;
+  const dt = new Date(+m[1], +m[2] - 1, +m[3]);
+  // "2026-02-30" would roll into March. Treat it as not a date.
+  return dt.getMonth() === +m[2] - 1 && dt.getDate() === +m[3] ? dt : null;
+}
+/* Gives up on a slow step instead of leaving the student on a spinner forever. */
+function withTimeout(promise, ms, onTimeout) {
+  let timer;
+  return Promise.race([promise, new Promise((_, rej) => { timer = setTimeout(() => { if (onTimeout) onTimeout(); rej({ code: "timeout" }); }, ms); })]).finally(() => clearTimeout(timer));
+}
+function isoOf(dt) { return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`; }
+function fmtDate(d) { const dt = parseISO(d); return dt ? `${DAYS[dt.getDay()]}, ${MONTHS[dt.getMonth()]} ${dt.getDate()}` : ""; }
+function splitTime(t) { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ""); if (!m || +m[1] > 23 || +m[2] > 59) return null; const H = +m[1]; return { h: ((H + 11) % 12) + 1, m: m[2], ap: H < 12 ? "AM" : "PM" }; }
+function fmtTime(t) { const s = splitTime(t); return s ? `${s.h}:${s.m} ${s.ap}` : ""; }
+function fmtRange(a, b) {
+  const x = splitTime(a), y = splitTime(b);
+  if (x && y) return x.ap === y.ap ? `${x.h}:${x.m}–${y.h}:${y.m} ${y.ap}` : `${x.h}:${x.m} ${x.ap}–${y.h}:${y.m} ${y.ap}`;
+  return x ? `${x.h}:${x.m} ${x.ap}` : "";
+}
+function fmtWhen(v) { return [fmtDate(v.date), fmtRange(v.start, v.end)].filter(Boolean).join(" · "); }
+function display(k, v) {
+  if (isEmpty(v)) return "";
+  if (k === "date") return fmtDate(v);
+  if (k === "start" || k === "end") return fmtTime(v);
+  if (k === "tags") return v.join(", ");
+  return String(v);
+}
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = h("div", { class: "toast", role: "status" }, msg);
+  document.body.append(t); setTimeout(() => t.remove(), 2200);
+}
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); toast("Copied"); }
+  catch (e) {
+    const box = btn && btn.parentElement && btn.parentElement.querySelector(".v");
+    if (box) { const r = document.createRange(); r.selectNodeContents(box); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    toast("Selected. Copy it from here.");
+  }
+}
+
+/* ---------- Claude ---------- */
+async function initClaude() {
+  try {
+    if (window.claude && window.claude.use) {
+      sampleFn = await window.claude.use("sample");
+      if (sampleFn) { const lim = await sampleFn.limits().catch(() => null); canImages = !!(lim && lim.images); }
+    }
+  } catch (e) { sampleFn = null; }
+  claudeChecked = true;
+  if (S.screen === "add") render();
+}
+initClaude();
+/* Inside a Claude viewer the page can only reach Claude. Opened anywhere else, it reads flyers on the device with Tesseract OCR. */
+const IN_CLAUDE = !!(window.claude && window.claude.use);
+const useOCR = () => !(sampleFn && canImages) && !IN_CLAUDE;
+const imagesPossible = () => !IN_CLAUDE || !claudeChecked || !!(sampleFn && canImages);
+
+/* Reads one or more images with one worker. Progress runs 0–1 across all of them. */
+async function ocrImage(images, onProgress) {
+  images = Array.isArray(images) ? images : [images];
+  // The download sometimes fails on the first try (a flaky connection). Try twice before giving up.
+  for (let tries = 0; !window.Tesseract && tries < 2; tries++) {
+    try { await withTimeout(loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"), 30000); }
+    catch (e) { if (tries) throw { code: "ocr_failed" }; await new Promise(r => setTimeout(r, 1000)); }
+  }
+  if (!window.Tesseract || !window.Tesseract.createWorker) throw { code: "ocr_failed" };
+  let pass = 0;
+  const worker = await window.Tesseract.createWorker("eng", 1, {
+    logger: m => { if (onProgress && m && typeof m.progress === "number") onProgress(m.status, /recogniz/i.test(m.status) ? (pass + m.progress) / images.length : m.progress); }
+  });
+  try { const out = []; for (; pass < images.length; pass++) out.push((await worker.recognize(images[pass])).data); return out; }
+  finally { worker.terminate(); }
+}
+/* Flyers mix light and dark areas (a navy top over a pale bottom), and the reader only sees dark text on light.
+   So read the flyer twice, once as it is and once flipped, and keep the best reading of each line. */
+function mergeOCRLines(lists) {
+  const all = lists.flat().sort((a, b) => b.conf - a.conf);
+  const overlap = (a, b) => {
+    const ix = Math.max(0, Math.min(a.box[2], b.box[2]) - Math.max(a.box[0], b.box[0])), iy = Math.max(0, Math.min(a.box[3], b.box[3]) - Math.max(a.box[1], b.box[1]));
+    const area = x => (x.box[2] - x.box[0]) * (x.box[3] - x.box[1]);
+    return ix * iy / Math.max(1e-9, Math.min(area(a), area(b)));
+  };
+  const kept = [];
+  for (const l of all) if (!kept.some(k => overlap(k, l) > 0.5)) kept.push(l);
+  return kept.sort((a, b) => a.box[1] - b.box[1] || a.box[0] - b.box[0]);
+}
+/* OCR reads dark text on a light, even background best. Scale the flyer to about 2000 px, turn it grey,
+   flip it if it's mostly dark (white-on-navy flyers), and stretch the contrast. invert: true or false forces it. */
+function prepForOCR(img, forceInvert, adaptive) {
+  const s = Math.min(2.5, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * s), hh = Math.round(img.naturalHeight * s);
+  const c = document.createElement("canvas"); c.width = w; c.height = hh;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  x.fillStyle = "#fff"; x.fillRect(0, 0, w, hh); x.drawImage(img, 0, 0, w, hh);
+  const id = x.getImageData(0, 0, w, hh), p = id.data, n = w * hh;
+  const g = new Uint8ClampedArray(n); const hist = new Uint32Array(256); let sum = 0;
+  for (let i = 0; i < n; i++) { const v = (p[i * 4] * 299 + p[i * 4 + 1] * 587 + p[i * 4 + 2] * 114) / 1000; g[i] = v; hist[g[i]]++; sum += v; }
+  const invert = typeof forceInvert === "boolean" ? forceInvert : sum / n < 115;
+  let lo = 0, hi = 255, acc = 0;
+  for (let i = 0; i < 256; i++) { acc += hist[i]; if (acc > n * 0.02) { lo = i; break; } }
+  acc = 0; for (let i = 255; i >= 0; i--) { acc += hist[i]; if (acc > n * 0.02) { hi = i; break; } }
+  const span = Math.max(1, hi - lo);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let v = (g[i] - lo) * 255 / span; if (invert) v = 255 - v; out[i] = v; }
+  if (adaptive) {
+    // Compare each pixel with the average around it, not with the whole flyer, so faint text on a pale
+    // patch (white on lavender) still comes out as black on white. Integral image keeps it fast.
+    const R = Math.max(15, Math.round(Math.max(w, hh) / 40)), I = new Float64Array((w + 1) * (hh + 1));
+    for (let y = 0; y < hh; y++) { let row = 0; for (let x0 = 0; x0 < w; x0++) { row += out[y * w + x0]; I[(y + 1) * (w + 1) + x0 + 1] = I[y * (w + 1) + x0 + 1] + row; } }
+    const bin = new Uint8ClampedArray(n);
+    for (let y = 0; y < hh; y++) {
+      const y0 = Math.max(0, y - R), y1 = Math.min(hh, y + R + 1);
+      for (let x0 = 0; x0 < w; x0++) {
+        const a = Math.max(0, x0 - R), b = Math.min(w, x0 + R + 1);
+        const mean = (I[y1 * (w + 1) + b] - I[y0 * (w + 1) + b] - I[y1 * (w + 1) + a] + I[y0 * (w + 1) + a]) / ((y1 - y0) * (b - a));
+        bin[y * w + x0] = out[y * w + x0] < mean - 10 ? 0 : 255;
+      }
+    }
+    for (let i = 0; i < n; i++) out[i] = bin[i];
+  }
+  for (let i = 0; i < n; i++) { p[i * 4] = p[i * 4 + 1] = p[i * 4 + 2] = out[i]; p[i * 4 + 3] = 255; }
+  x.putImageData(id, 0, 0);
+  return { canvas: c, w, h: hh };
+}
+function setReadingStatus(text) { const el = document.getElementById("reading-status"); if (el) el.textContent = text; }
+
+function buildPrompt(kind, text) {
+  const now = new Date();
+  const today = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${isoOf(now)})`;
+  return `You read event flyers for a student organization at Xavier University and fill in the campus event form on EngageXU. Today is ${today}.
+${kind === "image" ? "The attached image is the event flyer." : "The student typed or pasted this about the event:\n\"\"\"\n" + text.slice(0, 6000) + "\n\"\"\""}
+
+Return ONLY one JSON object with exactly these keys: title, description, type, date, start, end, location, tags, food, rsvp, money.
+Each key maps to an object: {"value": ..., "quote": string|null, "box": [x0,y0,x1,y1]|null, "sure": boolean, "question": string|null, "options": array|null}
+
+Values:
+- title: the event's name as written.
+- description: 1 to 3 plain sentences using ONLY facts from the source. No hype, no exclamation points, no emoji.
+- type: one of ${JSON.stringify(TYPES)}.
+- date: "YYYY-MM-DD". start and end: "HH:MM" in 24-hour time.
+- location: an entry from ${JSON.stringify(LOCATIONS)} when it matches exactly; otherwise "<building from that list> · Room <n>" if the building is on the list; otherwise the place as written.
+- tags: an array of up to 4 from ${JSON.stringify(TAGS)}.
+- food: "Yes" only if the source mentions food or drinks; otherwise null.
+- rsvp: one of ${JSON.stringify(RSVP)} only if the source mentions RSVP, registration or sign-ups; otherwise null.
+- money: "Yes" only if the source mentions a price, tickets, a fee or donations; otherwise null.
+
+Rules:
+- Never guess. If the source doesn't say it, value is null and sure is false.
+- quote: the exact words in the source the value came from, or null.
+- box: ${kind === "image" ? "the region of the image holding those words, as fractions of image width and height from the top-left (0 to 1)" : "always null"}.
+- sure: true only when the source states it plainly and unambiguously. false for anything inferred: type, tags, a date worked out from a weekday, a time without AM or PM, a place not on the list.
+- question: when value is null, or sure is false for title, date, start, end or location, write one short, plain question for the student, such as "No end time on the flyer. When does it end?" or "The flyer says Thursday. Which Thursday?" Otherwise null.
+- options: for a date question where the source names only a weekday, up to 3 upcoming matching dates as "YYYY-MM-DD", soonest first. Otherwise null.`;
+}
+
+async function extract(kind, payload) {
+  const ctl = new AbortController(); S.ctl = ctl;
+  const opts = { signal: ctl.signal };
+  if (kind === "image") opts.images = [payload];
+  const data = await withTimeout(sampleFn.json(buildPrompt(kind, kind === "text" ? payload : ""), opts), 90000, () => ctl.abort());
+  if (!data || typeof data !== "object") throw { code: "invalid_json" };
+  return data;
+}
+
+/* The on-device reader, used whenever Claude isn't available: typed text, or OCR lines from a flyer.
+   It follows the same rule as Claude: anything it can't settle becomes a question, never a guess. */
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const BUILDING_ALIASES = [
+  [/\bgallagher\b|\bgsc\b/i, "Gallagher Student Center"], [/\bconaton\b|\bclc\b/i, "Conaton Learning Commons"],
+  [/\bsmith\b/i, "Smith Hall"], [/\balter\b/i, "Alter Hall"], [/\bcintas\b/i, "Cintas Center"], [/\bhinkle\b/i, "Hinkle Hall"],
+  [/\bbellarmine\b/i, "Bellarmine Chapel"], [/\bhailstones\b/i, "Hailstones Hall"], [/\blogan\b/i, "Logan Hall"],
+  [/\bschott\b/i, "Schott Hall"], [/\bfenwick\b/i, "Fenwick Place"], [/\bhealth united\b|\bhub\b/i, "Health United Building"],
+  [/\bacademic mall\b|\bthe mall\b/i, "Academic Mall (outdoors)"]
+];
+const FOOD_RE = /\b(free food|pizza|food|snacks?|dinner|lunch|breakfast|brunch|refreshments?|cookies|coffee|donuts?|bagels|tacos|wings|boba|treats|ice cream|cupcakes|drinks)\b/i;
+const TYPE_RULES = [
+  [/\binfo(rmation(al)?)? session/i, "Info Session", ["Career"]], [/\btabling|info table/i, "Info Table", []],
+  [/\bcareer fair|\bfair\b|\bexpo\b/i, "Fair/Expo", ["Career", "Networking"]],
+  [/\bspeaker|keynote|lecture|talk\b|panel|alumn/i, "Speaker/Lecture", ["Speaker"]], [/\bworkshop|training|how to\b/i, "Training/Workshop", ["Academic"]],
+  [/\bgeneral (body )?meeting|\bgbm\b|\bmeeting\b/i, "Meeting", ["Meeting"]], [/\bvolunteer|service\b|clean[- ]?up/i, "Volunteer/Service Opportunity", ["Service"]],
+  [/\bfundrais|bake sale|donat/i, "Fundraiser", ["Fundraiser"]], [/\bconcert|performance|showcase|open mic|recital/i, "Performance", ["Arts"]],
+  [/\bcompetition|hackathon|case comp/i, "Competition", ["Academic"]], [/\bconference|summit\b/i, "Conference", ["Leadership"]],
+  [/\bbanquet|gala\b/i, "Banquet/Gala", ["Social"]], [/\bretreat\b/i, "Retreat", ["Leadership"]], [/\bfield trip|\btrip\b/i, "Trip", []],
+  [/\bmovie|film|screening/i, "Film/Movie", ["Social"]], [/\bmass\b|prayer|rosary/i, "Prayer", ["Spiritual"]],
+  [/\bcareer|résumé|resume|network|internship|recruit/i, "Educational Program", ["Career", "Networking"]],
+  [/\byoga|5k|zumba|workout|fitness/i, "Fitness Activity", ["Wellness", "Sports"]], [/\btournament|pickup|intramural/i, "Sporting Event", ["Sports"]],
+  [/\bmixer|social|party|trivia|bingo|game night/i, "Social Program", ["Social"]]
+];
+function nextWeekdays(dayIdx, n = 3) {
+  const out = []; const d = new Date(); d.setHours(0, 0, 0, 0);
+  for (let i = 1; out.length < n && i < 40; i++) { const x = new Date(d); x.setDate(d.getDate() + i); if (x.getDay() === dayIdx) out.push(isoOf(x)); }
+  return out;
+}
+function titleCase(s) { return /[a-z]/.test(s) ? s : s.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()); }
+function localRead(text, lines) {
+  const out = {}; const t = text.replace(/\r/g, "");
+  const ocr = !!lines;
+  const L = lines || t.split("\n").map(s => s.trim()).filter(Boolean).map(s => ({ text: s }));
+  const unionBox = ls => { const b = ls.map(l => l.box).filter(Boolean); return b.length ? [Math.min(...b.map(x => x[0])), Math.min(...b.map(x => x[1])), Math.max(...b.map(x => x[2])), Math.max(...b.map(x => x[3]))] : null; };
+  const boxOf = q => {
+    if (!ocr || !q) return null; const ql = q.toLowerCase();
+    const hit = L.find(l => l.text.toLowerCase().includes(ql)) || L.find(l => l.text.length > 3 && ql.includes(l.text.toLowerCase()));
+    return hit ? hit.box : null;
+  };
+  const set = (k, value, quote, extra = {}) => { out[k] = Object.assign({ value, quote: quote || null, box: boxOf(quote), sure: false, question: null }, extra); };
+  const used = new Set();
+
+  /* Title: on a flyer, the biggest type. In typed text, the first line. */
+  let titleLines = [];
+  // Only real words can be the title: photos and logos come back as junk like "AM >| p -—" or "fi... Wid =".
+  const wordy = l => { const s = l.text.replace(/\s+/g, ""); return s.length >= 3 && (s.match(/[A-Za-z]/g) || []).length / s.length >= 0.75 && /[A-Za-z]{3}/.test(s) && !(l.conf < 60); };
+  const titleable = L.filter(l => l.hgt && wordy(l));
+  if (ocr && titleable.length) { const max = Math.max(...titleable.map(l => l.hgt)); titleLines = titleable.filter(l => l.hgt >= max * 0.68).slice(0, 3); }
+  else if (L[0]) titleLines = [L[0]];
+  if (titleLines.length) {
+    const title = titleCase(titleLines.map(l => l.text).join(" ").replace(/\s+/g, " ").replace(/[.:]+$/, "")).slice(0, 90);
+    titleLines.forEach(l => used.add(l));
+    out.title = { value: title, quote: titleLines.map(l => l.text).join(" "), box: unionBox(titleLines), sure: false, question: null };
+  }
+
+  /* Date */
+  const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Whole month names only, so words like "Maybe 15" or "Marching 4" aren't read as dates.
+  const MON_RE = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
+  // "Oct 8", "Oct 8, 2026", and day-first "11 February" or "8th of October 2026". m[1] month, m[2] day, m[3] year.
+  // The day can't be followed by ":30" or ".30": in "11 February 6:30" the 6 is a time, not the day.
+  // The year may follow with no space: OCR reads "Oct 8, 2026" as "Oct 8,2026".
+  let mon = new RegExp("\\b" + MON_RE + "\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?![:.]\\d)(?:(?:,\\s*|\\s+)(\\d{4})\\b)?", "i").exec(t);
+  if (!mon) { const dm = new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?" + MON_RE + "\\b\\.?(?:(?:,\\s*|\\s+)(\\d{4})\\b)?", "i").exec(t); if (dm) { mon = [dm[0], dm[2], dm[1], dm[3]]; mon.index = dm.index; } }
+  const num = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(t);
+  const wdm = new RegExp("\\b(" + WEEKDAYS.join("|") + "|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun)\\b\\.?", "i").exec(t);
+  const wd = wdm ? WEEKDAYS.findIndex(w => w.startsWith(wdm[1].toLowerCase().slice(0, 3))) : -1;
+  let dt = null, dq = null;
+  if (mon) { dt = new Date(mon[3] ? +mon[3] : now.getFullYear(), MONTHS.findIndex(m => m.toLowerCase() === mon[1].slice(0, 3).toLowerCase()), +mon[2]); dq = mon[0]; }
+  else if (num && +num[1] <= 12 && +num[2] <= 31) { dt = new Date(num[3] ? (+num[3] < 100 ? 2000 + +num[3] : +num[3]) : now.getFullYear(), +num[1] - 1, +num[2]); dq = num[0]; }
+  else if (/\btomorrow\b/i.test(t)) { dt = new Date(today); dt.setDate(dt.getDate() + 1); dq = "tomorrow"; }
+  else if (/\btonight\b|\btoday\b/i.test(t)) { dt = new Date(today); dq = (/\btonight\b|\btoday\b/i.exec(t))[0]; }
+  // A day that doesn't exist ("Feb 30") rolls into the next month. Drop it so the student is asked.
+  const dayNum = mon ? +mon[2] : (num && dq === num[0]) ? +num[2] : null;
+  if (dt && dayNum != null && dt.getDate() !== dayNum) dt = null;
+  // A date without a year that has passed means next year. One with a year stays put (Review flags it if it's past).
+  const hasYear = (mon && mon[3]) || (num && dq === num[0] && num[3]);
+  if (dt && dt < today && !hasYear && dq !== "today" && dq !== "tonight") dt.setFullYear(dt.getFullYear() + 1);
+  if (dt) {
+    const quote = wdm && t.indexOf(wdm[0]) > -1 && Math.abs(t.indexOf(wdm[0]) - t.indexOf(dq)) < 20 ? `${wdm[0]} ${dq}` : dq;
+    if (wd > -1 && dt.getDay() !== wd) {
+      const near = nextWeekdays(wd, 2);
+      set("date", isoOf(dt), dq, { question: `The flyer says ${WEEKDAYS[wd][0].toUpperCase() + WEEKDAYS[wd].slice(1)} and ${fmtDate(isoOf(dt)).slice(5)}, but ${fmtDate(isoOf(dt)).slice(5)} is a ${WEEKDAYS[dt.getDay()][0].toUpperCase() + WEEKDAYS[dt.getDay()].slice(1)}. Which is right?`, options: [isoOf(dt)].concat(near) });
+    } else set("date", isoOf(dt), quote, { sure: !ocr && !!(mon || num), box: boxOf(dq) });
+  } else if (wd > -1) {
+    const name = WEEKDAYS[wd][0].toUpperCase() + WEEKDAYS[wd].slice(1);
+    out.date = { value: null, quote: wdm[0], sure: false, question: `The flyer says ${name}. Which ${name}?`, options: nextWeekdays(wd, 3) };
+  }
+
+  /* Times */
+  const AP = "(a\\.?m\\.?|p\\.?m\\.?)";
+  const to24 = (hh, mm, ap) => { let H = +hh % 12; if (/p/i.test(ap)) H += 12; return `${String(H).padStart(2, "0")}:${mm || "00"}`; };
+  // "09.00 AM" and "6.30pm" use a dot. Read them as 9:00 and 6:30, not as "00 AM".
+  const tt = t.replace(/\bnoon\b/gi, "12:00 pm").replace(/\bmidnight\b/gi, "12:00 am").replace(/\b(\d{1,2})\.(\d{2})(?=\s*(?:[ap]\.?m\b|[-–—]|to\b))/gi, "$1:$2");
+  // "Nov 19 – 7:30 PM", "Feb 4 - 7 PM" and "3/12 - 7 PM" are a date then a time, not a range like 4 to 7.
+  const dateBefore = s => /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*$|\d\/$/i.test(s);
+  let rng = null;
+  for (const m of tt.matchAll(new RegExp("\\b(\\d{1,2})(?::(\\d{2}))?\\s*" + AP + "?\\s*(?:-|–|—|to|until|till)\\s*(\\d{1,2})(?::(\\d{2}))?\\s*" + AP, "gi"))) {
+    // After a month name, "4 - 7 PM" is a day then a time, but "6:30-7:30 PM" (with minutes) is a time range.
+    if (+m[1] > 12 || +m[4] > 12 || (!m[2] && dateBefore(tt.slice(0, m.index)))) continue;
+    rng = m; break;
+  }
+  const one = new RegExp("\\b(\\d{1,2})(?::(\\d{2}))?\\s*" + AP + "(?![a-z])", "i").exec(tt);
+  const bare = /\b(?:at|@|from|starts?|doors)\s*(\d{1,2})(?::(\d{2}))?\b(?!\s*(?:[ap]\.?m|\/|st|nd|rd|th))/i.exec(tt);
+  if (rng) {
+    let ap1 = rng[3], ap2 = rng[6];
+    if (!ap1) { ap1 = ap2; if (+rng[1] % 12 > +rng[4] % 12) ap1 = /p/i.test(ap2) ? "am" : "pm"; }
+    set("start", to24(rng[1], rng[2], ap1), rng[0], { sure: !ocr && !!rng[3] });
+    set("end", to24(rng[4], rng[5], ap2), rng[0], { sure: !ocr && !!rng[3] });
+  } else if (one) {
+    set("start", to24(one[1], one[2], one[3]), one[0], { sure: !ocr });
+  } else if (bare) {
+    const H = +bare[1];
+    out.start = { value: null, quote: bare[0], sure: false, question: `The flyer says ${bare[0].trim()}, without AM or PM. When does it start?`, suggest: to24(H, bare[2], H >= 1 && H <= 9 ? "pm" : "am") };
+  }
+
+  /* Location */
+  let bld = LOCATIONS.filter(l => !l.includes("·")).find(b => t.toLowerCase().includes(b.toLowerCase()));
+  let exact = !!bld;
+  if (!bld) { const a = BUILDING_ALIASES.find(([re]) => re.test(t)); if (a) bld = a[1]; }
+  const room = /\b(?:room|rm\.?)\s*#?\s*([A-Za-z]?\d{2,4}[A-Za-z]?)\b/i.exec(t) || (bld ? new RegExp(bld.split(" ")[0] + "(?: hall| center| commons)?,?\\s+([A-Za-z]?\\d{2,4})\\b", "i").exec(t) : null);
+  if (bld) {
+    // A named space ("Kennedy Auditorium (CLC)") is kept next to the building instead of being dropped.
+    const space = !room && /\b([A-Za-z']+(?:[ \t]+[A-Za-z']+)?[ \t]+(?:auditorium|theat(?:er|re)|ballroom|lounge|atrium|gym|forum))\b/i.exec(t);
+    const value = room && !/outdoors/.test(bld) ? `${bld} · Room ${room[1].toUpperCase()}` : space && !/outdoors/.test(bld) ? `${bld} · ${titleCase(space[1])}` : bld;
+    const qm = new RegExp("[^\\n]*" + bld.split(" ")[0] + "[^\\n]*", "i").exec(t);
+    set("location", value, qm ? qm[0].trim() : bld, { sure: !ocr && exact && LOCATIONS.includes(value) });
+  } else if (room) {
+    out.location = { value: null, quote: room[0], sure: false, question: `The flyer says ${room[0]}. Which building?` };
+  }
+
+  /* Food, type, tags, registration, money */
+  const fm = FOOD_RE.exec(t);
+  if (fm) set("food", "Yes", fm[0], { sure: !ocr });
+  const rule = TYPE_RULES.find(([re]) => re.test(t));
+  if (rule) set("type", rule[1], (rule[0].exec(t) || [])[0]);
+  const tags = new Set(rule ? rule[2] : []);
+  if (fm) tags.add("Free food");
+  for (const [re] of TYPE_RULES) { const r = TYPE_RULES.find(x => x[0] === re); if (re.test(t)) r[2].forEach(x => tags.size < 4 && tags.add(x)); }
+  if (/all majors|everyone welcome|all (are )?welcome/i.test(t) && tags.size < 4) tags.add("All majors");
+  if (tags.size) out.tags = { value: [...tags].slice(0, 4), quote: null, box: null, sure: false, question: null };
+  const rs = /\b(rsvp|register|registration|sign[- ]?up)\b[^\n]*/i.exec(t);
+  if (rs) set("rsvp", /limited|spots|seats|capacity|first \d+/i.test(t) ? "RSVP required, limited spots" : "RSVP required", rs[0].trim());
+  const money = /\$\s?\d+|\btickets?\b|\bdonations?\b|\bentry fee\b|\bcash\b|\bvenmo\b/i.exec(t);
+  if (money) set("money", "Yes", money[0]);
+
+  /* Description: every line except the title, in the flyer's own words. */
+  /* Flyers wrap phrases across lines ("Building a brand people trust," / "with alumna…", "Free" / "pizza"),
+     so join a line onto the one before when it clearly continues it. */
+  const raw = L.filter(l => !used.has(l)).map(l => l.text.trim()).filter(s => s.length > 1 && !/^(\w+\s){0,4}presents?:?$/i.test(s));
+  const rest = [];
+  for (const s of raw) {
+    const prev = rest[rest.length - 1];
+    const words = x => x.split(/\s+/).length;
+    if (prev && (/[,;:&\-–]$/.test(prev) || /^[a-z]/.test(s) || (words(prev) <= 2 && words(s) <= 2 && !/[.!?]$/.test(prev)))) rest[rest.length - 1] = prev + " " + s;
+    else rest.push(s);
+  }
+  if (rest.length) {
+    const desc = rest.map(s => /[.!?]$/.test(s) ? s : s.replace(/[,;:\-–]$/, "") + ".").join(" ").replace(/\s+/g, " ").replace(/!+/g, ".").slice(0, 400);
+    out.description = { value: desc, quote: null, box: null, sure: false, question: null };
+  }
+  return out;
+}
+
+/* ---------- Draft ---------- */
+function newDraft(origin) {
+  const fields = {};
+  for (const f of FIELDS) fields[f.k] = { value: f.kind === "tags" ? [] : null, src: null, sure: false, ok: false };
+  const org = saved.org || {};
+  for (const [k, ok] of Object.entries(ORG_KEYS)) if (org[ok]) fields[k] = { value: org[ok], src: "org", sure: true, ok: false };
+  return { origin, fields, img: null, flyerUrl: null, text: "", questions: {}, startedAt: Date.now(), fixes: 0 };
+}
+
+/* An unfinished post survives a refresh (the flyer image itself doesn't, only what was read from it). */
+const DRAFT_KEY = "postcheck.draft";
+function saveDraft() {
+  try {
+    if (!S.draft || !["questions", "review"].includes(S.screen)) return;
+    const { img, flyerUrl, ...rest } = S.draft;
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ d: rest, screen: S.screen, queue: S.queue, qi: S.qi, savedAt: Date.now() }));
+  } catch (e) {}
+}
+function loadDraft() {
+  try {
+    const x = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (!x || !x.d || typeof x.d !== "object" || !(Date.now() - x.savedAt < 7 * 864e5)) return null;
+    // A draft saved by an older build can be missing fields or ask about ones that no longer exist. Fill the gaps.
+    const fresh = newDraft(x.d.origin || "text");
+    const fields = x.d.fields && typeof x.d.fields === "object" ? x.d.fields : {};
+    for (const f of FIELDS) {
+      const fd = fields[f.k];
+      if (!fd || typeof fd !== "object" || !("value" in fd)) fields[f.k] = fresh.fields[f.k];
+      else if (f.kind === "tags" && !Array.isArray(fd.value)) fd.value = [];
+      else if (f.k === "type" && OLD_TYPES[fd.value]) fd.value = OLD_TYPES[fd.value];
+    }
+    x.d = Object.assign(fresh, x.d, { fields, questions: x.d.questions && typeof x.d.questions === "object" ? x.d.questions : {} });
+    x.queue = Array.isArray(x.queue) ? x.queue.filter(k => FIELD[k]) : [];
+    return x;
+  } catch (e) { return null; }
+}
+function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+function resumeDraft(x) {
+  const d = Object.assign(x.d, { img: null, flyerUrl: null });
+  if (d.fields.image && d.fields.image.src === "flyer-image") d.fields.image = { value: null, src: null, sure: false, ok: false };
+  for (const k in d.fields) if (d.fields[k].box) d.fields[k].box = null;
+  S.draft = d; S.queue = x.queue || []; S.qi = Math.min(x.qi || 0, S.queue.length); go(x.screen === "questions" && S.queue[S.qi] ? "questions" : "review");
+}
+/* Claude doesn't always answer in exactly the shape the prompt asks for: values can come back bare
+   ("title": "Guest Night") instead of {value: …}, wrapped in an outer object, under other key names,
+   or as "7:00 PM" and "Feb 4, 2027". Accept all of those instead of silently dropping every field. */
+const EXTRACT_KEYS = ["title", "description", "type", "date", "start", "end", "location", "tags", "food", "rsvp", "money"];
+const KEY_ALIASES = { name: "title", event_name: "title", eventName: "title", event_title: "title", summary: "description", event_type: "type", eventType: "type", start_date: "date", event_date: "date", startDate: "date", start_time: "start", startTime: "start", end_time: "end", endTime: "end", place: "location", venue: "location", location_name: "location", food_provided: "food", registration: "rsvp", cost: "money", price: "money" };
+function normalizeExtraction(data) {
+  if (!data || typeof data !== "object") return {};
+  if (Array.isArray(data)) data = data[0] || {};
+  if (!EXTRACT_KEYS.some(k => k in data)) {
+    const inner = ["fields", "event", "result", "data", "extraction"].map(k => data[k]).find(x => x && typeof x === "object" && !Array.isArray(x));
+    if (inner) data = inner;
+  }
+  const out = {};
+  for (const [key, r] of Object.entries(data)) {
+    const k = EXTRACT_KEYS.includes(key) ? key : KEY_ALIASES[key];
+    if (!k || out[k]) continue;
+    out[k] = r && typeof r === "object" && !Array.isArray(r) ? r : { value: r, quote: null, box: null, sure: false, question: null };
+  }
+  return out;
+}
+function toTime24(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (splitTime(s)) return s.padStart(5, "0");
+  const m = /^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*([ap])\.?\s*m\.?$/i.exec(s);
+  if (m && +m[1] >= 1 && +m[1] <= 12 && (!m[2] || +m[2] < 60)) { let H = +m[1] % 12; if (/p/i.test(m[3])) H += 12; return `${String(H).padStart(2, "0")}:${m[2] || "00"}`; }
+  const iso = /^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})/.exec(s);
+  return iso ? iso[1] : null;
+}
+function toISODate(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (parseISO(s)) return s;
+  const iso = /^(\d{4}-\d{2}-\d{2})T/.exec(s); if (iso && parseISO(iso[1])) return iso[1];
+  const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if (us) { const x = `${us[3]}-${us[1].padStart(2, "0")}-${us[2].padStart(2, "0")}`; return parseISO(x) ? x : null; }
+  // "Feb 4, 2027" or "Thursday, February 4, 2027": only with a year, so nothing is guessed.
+  const named = /([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/i.exec(s);
+  if (named) { const mi = MONTHS.findIndex(mm => mm.toLowerCase() === named[1].slice(0, 3).toLowerCase()); if (mi > -1) { const x = `${named[3]}-${String(mi + 1).padStart(2, "0")}-${named[2].padStart(2, "0")}`; return parseISO(x) ? x : null; } }
+  return null;
+}
+const loose = s => String(s).toLowerCase().replace(/[^a-z]/g, "");
+function applyExtraction(d, data, srcKind) {
+  data = normalizeExtraction(data);
+  let filled = 0;
+  for (const k of EXTRACT_KEYS) {
+    const r = data[k]; if (!r || typeof r !== "object") continue;
+    let v = r.value;
+    if (k === "tags") v = (Array.isArray(v) ? v : typeof v === "string" ? v.split(/\s*,\s*/) : []).map(x => TAGS.find(t => loose(t) === loose(x))).filter(Boolean).slice(0, 4);
+    else if (v === true) v = "Yes";
+    else if (v === false) v = "No";
+    else if (v != null) v = String(v).trim();
+    if (k === "type" && v && !TYPES.includes(v)) v = OLD_TYPES[v] || TYPES.find(t => loose(t) === loose(v)) || null;
+    if (k === "date" && v) v = toISODate(v);
+    if ((k === "start" || k === "end") && v) v = toTime24(v);
+    if ((k === "food" || k === "money") && v) v = /^(yes|y|true)$/i.test(v) ? "Yes" : /^(no|n|false)$/i.test(v) ? "No" : null;
+    if (k === "rsvp" && v && !RSVP.includes(v)) v = RSVP.find(x => loose(x) === loose(v)) || null;
+    if ((k === "date" && v && !parseISO(v)) || ((k === "start" || k === "end") && v && !splitTime(v))) v = null;
+    // "9:00" becomes "09:00" so times compare correctly as text in runChecks.
+    if ((k === "start" || k === "end") && v) v = v.padStart(5, "0");
+    if ((k === "food" || k === "money") && v && !YESNO.includes(v)) v = null;
+    if (k === "rsvp" && v && !RSVP.includes(v)) v = null;
+    const box = Array.isArray(r.box) && r.box.length === 4 && r.box.every(n => typeof n === "number" && n >= 0 && n <= 1) && r.box[2] > r.box[0] && r.box[3] > r.box[1] ? r.box : null;
+    const qd = r.question ? { q: String(r.question), options: Array.isArray(r.options) ? r.options : null, suggest: r.suggest && splitTime(r.suggest) ? r.suggest : null } : null;
+    if (isEmpty(v)) { if (qd) d.questions[k] = qd; continue; }
+    d.fields[k] = { value: v, src: srcKind, quote: r.quote ? String(r.quote) : null, box: srcKind === "flyer" ? box : null, sure: r.sure === true, ok: false };
+    filled++;
+    if (r.sure !== true && qd) d.questions[k] = qd;
+  }
+  if (d.flyerUrl) d.fields.image = { value: "Flyer attached", src: "flyer-image", sure: true, ok: false };
+  return filled;
+}
+/* Nothing came out of a read: say so plainly instead of showing a blank form. */
+function requireSomething(filled, data) {
+  if (filled) return;
+  console.warn("PostCheck: the read returned nothing usable", data);
+  throw { code: "nothing_found" };
+}
+function buildQueue(d) {
+  const q = [];
+  for (const f of FIELDS) {
+    if (!f.req) continue;
+    const fd = d.fields[f.k];
+    if (isEmpty(fd.value) || (!fd.sure && d.questions[f.k])) q.push(f.k);
+  }
+  return q;
+}
+const needsCheck = fd => !fd.sure && !fd.ok;
+function blockers(d) {
+  let flagged = 0, blank = 0;
+  for (const f of FIELDS) { const fd = d.fields[f.k]; if (f.req && isEmpty(fd.value)) blank++; else if (!isEmpty(fd.value) && needsCheck(fd)) flagged++; }
+  const problems = runChecks(d).filter(c => c.block).length;
+  return { flagged, blank, problems };
+}
+
+/* Cross-field checks: the mistakes Problem.md lists (wrong date or time, wrong place, a description that
+   disagrees with the fields). "block" ones keep Post off; the rest are warnings. */
+function runChecks(d) {
+  const v = k => d.fields[k].value; const out = [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const cap = s => s[0].toUpperCase() + s.slice(1);
+  const dt = parseISO(v("date"));
+  // Browsers without a date or time picker let any text through. Don't let it be posted.
+  if (!isEmpty(v("date")) && !dt) out.push({ k: "date", block: true, msg: `“${v("date")}” isn't a date PostCheck can read. Pick it again.` });
+  for (const k of ["start", "end"]) if (!isEmpty(v(k)) && !splitTime(v(k))) out.push({ k, block: true, msg: `“${v(k)}” isn't a time PostCheck can read. Pick it again.` });
+  if (dt) {
+    const days = Math.round((dt - today) / 864e5);
+    if (days < 0) out.push({ k: "date", block: true, msg: `${fmtDate(v("date"))} has already passed.` });
+    else if (days < 14) out.push({ k: "date", msg: `That's ${days === 0 ? "today" : days === 1 ? "tomorrow" : "in " + days + " days"}. Xavier asks for events in EngageXU at least two weeks ahead, so approval may not come in time.` });
+    if (dt.getFullYear() > today.getFullYear() + 1) out.push({ k: "date", msg: `The year is ${dt.getFullYear()}. Is that right?` });
+    const srcTxt = [d.fields.date.quote, d.text, d.ocrText].filter(Boolean).join(" ").toLowerCase();
+    const said = WEEKDAYS.find(w => new RegExp("\\b" + w + "\\b").test(srcTxt));
+    if (said && WEEKDAYS[dt.getDay()] !== said) out.push({ k: "date", msg: `The ${d.origin === "text" ? "text" : "flyer"} says ${cap(said)}, but ${fmtDate(v("date")).slice(5)} is a ${cap(WEEKDAYS[dt.getDay()])}.` });
+  }
+  // "9:00" and "10:00" compare wrongly as text, so pad to "09:00" first.
+  const st = splitTime(v("start")) && v("start").padStart(5, "0"), en = splitTime(v("end")) && v("end").padStart(5, "0");
+  // EngageXU's time pickers only go in 5-minute steps, so 7:07 can't be entered there.
+  for (const [k, t] of [["start", st], ["end", en]]) if (t && +t.slice(3) % 5) out.push({ k, block: true, msg: `EngageXU only takes times in 5-minute steps, so ${fmtTime(t)} can't be entered. Pick the nearest one.` });
+  if (!isEmpty(v("type")) && !TYPES.includes(v("type"))) out.push({ k: "type", block: true, msg: `“${v("type")}” isn't one of EngageXU's event types. Pick one from the list.` });
+  if (st && en) {
+    if (en <= st) out.push({ k: "end", block: true, msg: `It ends (${fmtTime(en)}) before it starts (${fmtTime(st)}).` });
+    else {
+      const mins = (+en.slice(0, 2) * 60 + +en.slice(3)) - (+st.slice(0, 2) * 60 + +st.slice(3));
+      if (mins > 6 * 60) out.push({ k: "end", msg: `It runs ${Math.floor(mins / 60)} hours ${mins % 60 ? (mins % 60) + " minutes" : ""}. Check AM and PM.`.replace("  ", " ") });
+    }
+    const H = +st.slice(0, 2);
+    if (H >= 0 && H < 7) out.push({ k: "start", msg: `It starts at ${fmtTime(st)}. Did you mean PM?` });
+  }
+  const desc = String(v("description") || "");
+  if (desc) {
+    const re = /\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)/gi; let m;
+    const ok = [st, en].filter(Boolean);
+    while ((m = re.exec(desc))) {
+      let H = +m[1] % 12; if (/p/i.test(m[3])) H += 12;
+      const t = `${String(H).padStart(2, "0")}:${m[2] || "00"}`;
+      if (ok.length && !ok.includes(t)) { out.push({ k: "description", msg: `The description says ${m[0]}, but the event runs ${fmtRange(st, en)}.` }); break; }
+    }
+    if (dt) {
+      const said = WEEKDAYS.find(w => new RegExp("\\b" + w + "\\b", "i").test(desc));
+      if (said && said !== WEEKDAYS[dt.getDay()]) out.push({ k: "description", msg: `The description says ${cap(said)}, but the date is a ${cap(WEEKDAYS[dt.getDay()])}.` });
+    }
+    if (v("food") === "No" && FOOD_RE.test(desc)) out.push({ k: "food", msg: `The description mentions ${FOOD_RE.exec(desc)[0].toLowerCase()}, but "Will food be served?" is No.` });
+    if (/[A-Z]{6,}/.test(desc.replace(/[^A-Za-z ]/g, "")) && desc === desc.toUpperCase()) out.push({ k: "description", msg: "The description is all capitals. EngageXU shows it as written." });
+  }
+  if (v("food") === "Yes" && Array.isArray(v("tags")) && !v("tags").includes("Free food") && /\bfree\b/i.test(desc)) out.push({ k: "tags", msg: "Food is free. Add the Free food tag so people can find it." });
+  const loc = String(v("location") || "");
+  if (loc) {
+    const bld = loc.split(" · ")[0];
+    if (!LOCATIONS.includes(loc) && !LOCATIONS.includes(bld)) out.push({ k: "location", msg: `“${loc}” isn't a campus building PostCheck knows. EngageXU takes any location name, so check the spelling and add the room.` });
+    else if (!/·|outdoors|Chapel|Cintas/.test(loc)) out.push({ k: "location", msg: `${loc} has no room number. Add one so people find it.` });
+  }
+  const email = String(v("contact") || "");
+  if (email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) out.push({ k: "contact", block: true, msg: `“${email}” isn't a valid email address.` });
+  const att = String(v("attendance") || "");
+  if (att && (!/^\d{1,5}$/.test(att.trim()) || +att === 0)) out.push({ k: "attendance", block: true, msg: "Expected attendance needs to be a number." });
+  /* Against your own past posts: the same event twice, or two events in one room at once. */
+  if (dt) {
+    const mins = t => t ? +t.slice(0, 2) * 60 + +t.slice(3) : null;
+    const a0 = mins(st), a1 = mins(en) || (a0 != null ? a0 + 60 : null);
+    for (const e of saved.history || []) {
+      if (e.example || e.values.date !== v("date")) continue;
+      const sameName = String(e.values.title || "").trim().toLowerCase() === String(v("title") || "").trim().toLowerCase();
+      if (sameName) { out.push({ k: "title", msg: `You already posted ${e.values.title} for ${fmtDate(e.values.date)}. Is this a duplicate?` }); continue; }
+      const b0 = mins(e.values.start), b1 = mins(e.values.end);
+      if (a0 != null && b0 != null && b1 != null && a0 < b1 && b0 < a1 && loc && e.values.location === loc)
+        out.push({ k: "location", msg: `${e.values.title} is already in ${loc} from ${fmtRange(e.values.start, e.values.end)} that day.` });
+    }
+  }
+  const title = String(v("title") || "");
+  if (title.length > 80) out.push({ k: "title", msg: `The event name is ${title.length} characters. Shorter names read better in EngageXU.` });
+  return out;
+}
+
+/* ---------- Flow actions ---------- */
+function go(screen) { S.screen = screen; S.error = null; render(); window.scrollTo(0, 0); }
+function startFromPast(entry) {
+  const d = newDraft("past");
+  for (const f of FIELDS) {
+    const v = entry.values[f.k];
+    if (f.k === "date" || f.k === "start" || f.k === "end" || f.k === "image" || isEmpty(v)) continue;
+    // Keep today's saved organization details instead of the old post's copy.
+    if (ORG_KEYS[f.k] && d.fields[f.k] && d.fields[f.k].src === "org") continue;
+    d.fields[f.k] = { value: Array.isArray(v) ? v.slice() : v, src: "past", sure: true, ok: false };
+  }
+  d.pastTitle = entry.values.title;
+  d.questions.date = { q: `New date for ${entry.values.title}?` };
+  d.questions.start = { q: "When does it start?", suggest: entry.values.start };
+  d.questions.end = { q: "When does it end?", suggest: entry.values.end };
+  S.draft = d; S.queue = buildQueue(d); S.qi = 0; go(S.queue.length ? "questions" : "review");
+}
+async function readFile(file) {
+  if (!file) return;
+  if (S.draft && S.draft.flyerUrl) URL.revokeObjectURL(S.draft.flyerUrl);
+  const d = newDraft("flyer");
+  S.draft = d; go("reading");
+  try {
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+    // Dropped Word files, huge camera RAWs and empty files fail here with a clear message, not deep in the reader.
+    if (!file.size || file.size > 20 * 1024 * 1024 || !(isPdf || /^image\//.test(file.type) || /\.(png|jpe?g|webp|gif|heic)$/i.test(file.name || ""))) throw { code: "image_rejected" };
+    let blob = file;
+    if (isPdf) blob = await pdfToImage(file);
+    if (S.draft !== d) return;
+    d.flyerUrl = URL.createObjectURL(blob);
+    d.img = await loadImg(d.flyerUrl);
+    if (S.draft !== d) return;
+    render();
+    let data;
+    if (sampleFn && canImages) data = await extract("image", blob);
+    else if (useOCR()) {
+      // Four readings: as is, flipped, and both again with local contrast, so dark, light and faint areas all get read.
+      let results; const preps = [prepForOCR(d.img, false), prepForOCR(d.img, true), prepForOCR(d.img, false, true), prepForOCR(d.img, true, true)];
+      try {
+        results = await withTimeout(ocrImage(preps.map(p => p.canvas), (status, p) => {
+          if (S.draft !== d) return;
+          setReadingStatus(/recogniz/i.test(status) ? `Reading the text on this device. ${Math.round(p * 100)}%` : "Getting the text reader ready. The first time takes a few seconds.");
+        }), 180000);
+      } catch (e) { throw { code: e && e.code === "timeout" ? "timeout" : "ocr_failed" }; }
+      if (S.draft !== d) return;
+      const iw = preps[0].w, ih = preps[0].h;
+      const lines = mergeOCRLines(results.map(ocr => (ocr.lines || [])
+        .map(l => {
+          // Build the line from its confident words, so stray marks from photos ("RNS A", "p -—") drop out,
+          // and size it by its words' typical height, so a tall logo beside small text doesn't look like a headline.
+          const words = (l.words || []).filter(wd => wd.confidence >= 55 && /[A-Za-z0-9]/.test(wd.text));
+          const text = (l.words && l.words.length ? words.map(wd => wd.text).join(" ") : String(l.text || "")).replace(/\s+/g, " ").trim();
+          const hs = words.map(wd => wd.bbox.y1 - wd.bbox.y0).sort((a, b) => a - b);
+          return { text, conf: l.confidence, box: [l.bbox.x0 / iw, l.bbox.y0 / ih, l.bbox.x1 / iw, l.bbox.y1 / ih], hgt: hs.length ? hs[hs.length >> 1] : l.bbox.y1 - l.bbox.y0 };
+        })
+        // Drop junk from photos and logos: mostly symbols, or very low confidence.
+        .filter(l => l.text.length > 1 && l.conf > 35 && (l.text.match(/[A-Za-z0-9]/g) || []).length / l.text.replace(/\s/g, "").length >= 0.5)));
+      if (!lines.length) throw { code: "ocr_empty" };
+      d.ocrText = lines.map(l => l.text).join("\n");
+      data = localRead(d.ocrText, lines);
+    } else throw { code: "images_unavailable" };
+    if (S.draft !== d) return;
+    requireSomething(applyExtraction(d, data, "flyer"), data);
+    S.queue = buildQueue(d); S.qi = 0; go(S.queue.length ? "questions" : "review");
+  } catch (e) { if (S.draft === d) { if (!(e && e.code)) console.warn("PostCheck: flyer read failed", e); readFailed(e, "image"); } }
+}
+async function readText(text) {
+  const d = newDraft("text"); d.text = text;
+  S.draft = d; go("reading");
+  try {
+    let data;
+    if (sampleFn) data = await extract("text", text);
+    else { await new Promise(r => setTimeout(r, 700)); data = localRead(text); }
+    if (S.draft !== d) return;
+    requireSomething(applyExtraction(d, data, "text"), data);
+    S.queue = buildQueue(d); S.qi = 0; go(S.queue.length ? "questions" : "review");
+  } catch (e) {
+    if (S.draft !== d) return;
+    if (e && (e.code === "not_granted" || e.code === "sampling_disabled" || e.code === "capability_disabled")) {
+      sampleFn = null; applyExtraction(d, localRead(text), "text"); S.queue = buildQueue(d); S.qi = 0; go(S.queue.length ? "questions" : "review");
+    } else readFailed(e, "text");
+  }
+}
+function readFailed(e, kind) {
+  const code = e && e.code;
+  if (code === "cancelled") return;
+  const msg = {
+    images_unavailable: "PostCheck can't read images in this view. Type or paste the details instead.",
+    not_granted: "PostCheck needs your OK to read the flyer. Without it, type or paste the details instead.",
+    sampling_disabled: "Reading flyers isn't available on this account. Type or paste the details instead.",
+    rate_limited: "Too many reads in a row. Wait a minute, then try again.",
+    image_rejected: "That file couldn't be read. Try a PNG, JPG or PDF under 20 MB.",
+    pdf_failed: "That PDF couldn't be opened. Export the flyer as an image and try again.",
+    ocr_failed: "The text reader couldn't load. Check your internet connection, or type the details instead.",
+    ocr_empty: "PostCheck couldn't find any text on that image. Try a sharper photo, or type the details instead.",
+    session_expired: "You've been signed out. Sign in again, then try again.",
+    timeout: "Reading took too long and was stopped. Try again, or type the details instead.",
+    nothing_found: "PostCheck couldn't pull any event details from that. Try a clearer photo or a PNG export of the flyer, or type the details instead.",
+    invalid_json: "The read came back garbled. Try again, or type the details instead."
+  }[code] || "The flyer couldn't be read this time. Try again, or type the details instead.";
+  S.error = { msg, kind }; render();
+}
+function loadImg(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej({ code: "image_rejected" }); i.src = url; }); }
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.append(s); }); }
+async function pdfToImage(file) {
+  try {
+    if (!window.pdfjsLib) {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+    }
+    const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    const page = await pdf.getPage(1);
+    const base = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: Math.min(2.5, 1600 / Math.max(base.width, base.height)) });
+    const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+    const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const out = await new Promise(r => c.toBlob(r, "image/png"));
+    if (!out) throw new Error("toBlob returned nothing");
+    return out;
+  } catch (e) { throw { code: "pdf_failed" }; }
+}
+function sampleFlyer() {
+  const c = document.createElement("canvas"); c.width = 900; c.height = 1200; const x = c.getContext("2d");
+  x.fillStyle = "#1E2A3A"; x.fillRect(0, 0, 900, 1200);
+  x.fillStyle = "#F4C95D"; x.fillRect(70, 90, 120, 10);
+  x.textBaseline = "alphabetic"; x.fillStyle = "#F4C95D"; x.font = "600 30px Inter, Arial, sans-serif";
+  x.fillText("Marketing Club presents", 70, 160);
+  x.fillStyle = "#FFFFFF"; x.font = "600 104px Inter, Arial, sans-serif";
+  x.fillText("Guest", 66, 300); x.fillText("Speaker", 66, 410); x.fillText("Night", 66, 520);
+  x.fillStyle = "#C9D3E0"; x.font = "400 38px Inter, Arial, sans-serif";
+  x.fillText("Building a brand people trust,", 70, 610);
+  x.fillText("with alumna Dana Reyes", 70, 660);
+  x.fillStyle = "#FFFFFF"; x.font = "600 54px Inter, Arial, sans-serif";
+  x.fillText("Thursday · 7 PM", 70, 820);
+  x.font = "400 44px Inter, Arial, sans-serif"; x.fillText("Smith Hall, Room 204", 70, 890);
+  x.fillStyle = "#F4C95D"; x.beginPath(); x.arc(720, 1010, 110, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#1E2A3A"; x.font = "600 44px Inter, Arial, sans-serif"; x.textAlign = "center";
+  x.fillText("Free", 720, 1000); x.fillText("pizza", 720, 1050);
+  x.textAlign = "left"; x.fillStyle = "#C9D3E0"; x.font = "400 30px Inter, Arial, sans-serif";
+  x.fillText("All majors welcome", 70, 1100);
+  return new Promise(r => c.toBlob(b => r(b ? new File([b], "sample-flyer.png", { type: "image/png" }) : null), "image/png"));
+}
+function answer(k, value) {
+  const d = S.draft;
+  const prev = d.fields[k];
+  if (!isEmpty(prev.value) && ["flyer", "text"].includes(prev.src) && JSON.stringify(prev.value) !== JSON.stringify(value)) d.fixes = (d.fixes || 0) + 1;
+  d.fields[k] = Object.assign({}, d.fields[k], { value, src: "answer", sure: true, ok: true, box: null, quote: null });
+}
+function nextQuestion() { S.qi++; if (S.qi >= S.queue.length) go("review"); else render(); }
+function post() {
+  const d = S.draft; if (S.posting) return;
+  S.posting = true; S.error = null; render();
+  setTimeout(() => {
+    S.posting = false;
+    const values = {};
+    for (const f of FIELDS) values[f.k] = d.fields[f.k].value;
+    const minutes = Math.round((Date.now() - (d.startedAt || Date.now())) / 6000) / 10;
+    const entry = { id: "p" + Date.now(), postedAt: isoOf(new Date()), values, origin: d.origin, minutes, fixes: d.fixes || 0, sentBack: false };
+    saved.history = [entry].concat((saved.history || []).filter(e => !e.example)).slice(0, 100);
+    persist(); clearDraft();
+    S.lastPost = entry; S.draft = null; go("posted");
+  }, 1400);
+}
+
+function icsFor(e) {
+  const v = e.values;
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const at = (d, t) => d.replace(/-/g, "") + "T" + t.replace(":", "") + "00";
+  const esc = s => String(s || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//PostCheck//Pilot//EN", "BEGIN:VEVENT",
+    `UID:${e.id}@postcheck`, `DTSTAMP:${stamp}`, `DTSTART:${at(v.date, v.start)}`, `DTEND:${at(v.date, v.end)}`,
+    `SUMMARY:${esc(v.title)}`, `LOCATION:${esc(v.location)}`, `DESCRIPTION:${esc(v.description)}`,
+    "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+}
+function saveICS(e) {
+  const name = (e.values.title || "event").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase().slice(0, 60) + ".ics";
+  return saveFile(name, icsFor(e), "text/calendar");
+}
+async function saveFile(name, data, type) {
+  if (IN_CLAUDE) {
+    const dl = await window.claude.use("downloads").catch(() => null);
+    if (!dl) { toast("Saving files isn't available here."); return; }
+    try { await dl.save({ filename: name, data }); } catch (err) { if (err && err.code !== "cancelled" && err.code !== "declined") toast("The file wasn't saved."); }
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ---------- Inputs (shared by Questions and the edit sheet) ---------- */
+function inputFor(k, current, onDone, opts = {}) {
+  const f = FIELD[k];
+  const wrap = h("div", { class: "field" });
+  const submitBtn = (getVal, label = "Continue") => h("button", { class: "btn primary block", type: "button", onclick: () => { const v = getVal(); if (!isEmpty(v)) onDone(v); } }, label);
+  const id = "in-" + k;
+  if (f.kind === "choice") {
+    const list = h("div", { class: "choices", role: "list" });
+    for (const o of f.options) list.append(h("button", { class: "choice", type: "button", "aria-pressed": String(current === o), onclick: () => onDone(o) }, o, current === o ? icon("check", 20, "var(--blue)") : null));
+    wrap.append(list); return wrap;
+  }
+  if (f.kind === "tags") {
+    const sel = new Set(Array.isArray(current) ? current : []);
+    const chips = h("div", { class: "chips" });
+    for (const t of TAGS) {
+      const b = h("button", { class: "chip", type: "button", "aria-pressed": String(sel.has(t)), onclick: () => { sel.has(t) ? sel.delete(t) : sel.add(t); b.setAttribute("aria-pressed", String(sel.has(t))); } }, t);
+      chips.append(b);
+    }
+    wrap.append(chips, submitBtn(() => [...sel], opts.doneLabel)); return wrap;
+  }
+  if (f.kind === "location") {
+    const search = h("input", { type: "search", id, placeholder: "Search campus locations", value: current || "", autocomplete: "off" });
+    const list = h("div", { class: "loc-list", role: "list" });
+    const draw = () => {
+      list.innerHTML = ""; const q = search.value.trim().toLowerCase();
+      const hits = LOCATIONS.filter(l => !q || l.toLowerCase().includes(q) || l.toLowerCase().replace(" · ", " ").includes(q));
+      // Offer the organization's usual meeting room first, from Organization details.
+      const room = ((saved.org || {}).room || "").trim();
+      if (!q && room && room !== current) list.append(h("button", { class: "row", type: "button", onclick: () => onDone(room) }, h("span", { class: "txt" }, h("b", {}, room), h("span", { class: "caption" }, "Your usual meeting room"))));
+      for (const l of hits) list.append(h("button", { class: "row", type: "button", onclick: () => onDone(l) }, h("span", { class: "txt" }, h("b", {}, l)), l === current ? icon("check", 20, "var(--blue)") : null));
+      if (q && !LOCATIONS.some(l => l.toLowerCase() === q)) list.append(h("button", { class: "row", type: "button", onclick: () => onDone(search.value.trim()) }, h("span", { class: "txt" }, h("b", {}, `Use “${search.value.trim()}”`), h("span", { class: "caption" }, "Not a building PostCheck knows. Check the spelling."))));
+    };
+    search.addEventListener("input", draw); draw();
+    wrap.append(h("label", { class: "sr", for: id }, "Location"), search, list); return wrap;
+  }
+  const type = { date: "date", time: "time", number: "number", email: "email" }[f.kind] || "text";
+  let el;
+  if (f.kind === "longtext") el = h("textarea", { id, rows: "5" });
+  else el = h("input", { id, type, inputmode: f.kind === "number" ? "numeric" : null, min: f.kind === "number" ? "1" : null });
+  el.value = current || (opts.suggest || "");
+  wrap.append(h("label", { class: "sr", for: id }, f.label));
+  if (f.kind === "date" && opts.options && opts.options.length) {
+    const ch = h("div", { class: "choices" });
+    for (const o of opts.options.filter(o => parseISO(o))) ch.append(h("button", { class: "choice", type: "button", onclick: () => onDone(o) }, fmtDate(o)));
+    wrap.append(ch, h("p", { class: "caption" }, "Or pick another date:"));
+  }
+  wrap.append(el, submitBtn(() => el.value.trim(), opts.doneLabel));
+  el.addEventListener("keydown", e => { if (e.key === "Enter" && f.kind !== "longtext" && el.value.trim()) onDone(el.value.trim()); });
+  return wrap;
+}
+
+/* ---------- Screens ---------- */
+function bar(title, left, right) {
+  return h("header", { class: "bar" }, h("div", { class: "side" }, left || ""), h("h1", {}, title), h("div", { class: "side right" }, right || ""));
+}
+const backBtn = (to, label = "Back") => h("button", { class: "link-btn", type: "button", onclick: typeof to === "function" ? to : () => go(to), "aria-label": label }, icon("back", 22, "var(--blue)"));
+
+function scrIntro() {
+  const feature = (ic, title, sub) => h("li", {}, icon(ic, 18), h("b", {}, title), h("span", { class: "caption" }, sub));
+  return [h("main", { class: "pro" },
+    h("div", { class: "lockup" }, badgeEl(26), h("b", {}, "PostCheck")),
+    h("div", { class: "intro-copy" },
+      h("h1", {}, "Turn your event flyer into an accurate EngageXU post."),
+      h("p", {}, "PostCheck reads your flyer, completes each EngageXU field and flags anything missing, so you can review every detail before you post.")),
+    h("ul", { class: "features" },
+      feature("file", "Photo, PDF or text", "Start from whatever you have."),
+      feature("info", "Missing details flagged", "You're asked to confirm instead of the app guessing."),
+      feature("check", "Review before posting", "Each field shows where on the flyer it came from.")),
+    h("div", { class: "actions" },
+      h("button", { class: "btn primary block", type: "button", onclick: () => go("signin") }, "Sign in"),
+      h("button", { class: "btn secondary block", type: "button", onclick: () => { saved.lookingAround = true; persist(); go("home"); } }, "Explore with sample data"),
+      h("p", { class: "fine-print" }, "Not affiliated with Xavier University or CampusGroups.")))];
+}
+
+function scrSignin() {
+  const u = saved.user || {}, o = saved.org && !saved.org.example ? saved.org : {};
+  const inp = (id, label, val, attrs = {}) => h("div", { class: "field" },
+    h("label", { for: id }, label, attrs.optional ? h("span", { class: "opt" }, " (optional)") : null),
+    h("input", { id, type: attrs.type || "text", value: val || "", autocomplete: attrs.ac, placeholder: attrs.ph, "aria-describedby": attrs.hint ? id + "-hint" : null }),
+    attrs.hint ? h("p", { class: "hint", id: id + "-hint" }, attrs.hint) : null);
+  const submit = e => {
+    e.preventDefault();
+    const get = id => document.getElementById(id).value.trim();
+    const v = { name: get("si-name"), email: get("si-email"), org: get("si-org"), advisor: get("si-advisor"), room: get("si-room") };
+    const problems = {
+      "si-name": !v.name && "Enter your full name.",
+      // Same rule as the Contact email check on Review, so an address accepted here can't block posting later.
+      "si-email": !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v.email) && "Enter a valid email address.",
+      "si-org": !v.org && "Enter your organization's name."
+    };
+    form.querySelectorAll(".field-error").forEach(x => x.remove());
+    form.querySelectorAll("[aria-invalid]").forEach(x => x.removeAttribute("aria-invalid"));
+    let first = null;
+    for (const [id, msg] of Object.entries(problems)) {
+      if (!msg) continue;
+      const el = document.getElementById(id);
+      el.setAttribute("aria-invalid", "true");
+      el.after(h("p", { class: "field-error", role: "alert" }, msg));
+      first = first || el;
+    }
+    if (first) { first.focus(); return; }
+    saved.user = { name: v.name, email: v.email, signedInAt: new Date().toISOString() };
+    saved.org = { name: v.org, advisor: v.advisor || o.advisor || "", email: o.email || v.email, room: v.room || o.room || "" };
+    delete saved.lookingAround;
+    persist(); toast("Signed in"); go("home");
+  };
+  const form = h("form", { class: "pro", novalidate: true, onsubmit: submit },
+    h("div", { class: "intro-copy" },
+      h("h1", {}, "Sign in"),
+      h("p", {}, "Set up your account once. PostCheck adds these details to every event you post.")),
+    h("section", { class: "form-group", "aria-labelledby": "si-you" },
+      h("h2", { id: "si-you" }, "Your details"),
+      inp("si-name", "Full name", u.name, { ac: "name" }),
+      inp("si-email", "Xavier email", u.email, { type: "email", ac: "email", ph: "name@xavier.edu", hint: "Use the email you sign in to EngageXU with." })),
+    h("section", { class: "form-group", "aria-labelledby": "si-orgh" },
+      h("h2", { id: "si-orgh" }, "Organization"),
+      inp("si-org", "Organization name", o.name, { ac: "organization" }),
+      inp("si-advisor", "Faculty advisor", o.advisor, { optional: true }),
+      inp("si-room", "Usual meeting room", o.room, { optional: true, ph: "e.g. Smith Hall, Room 204" })),
+    h("div", { class: "notice" }, icon("info", 15),
+      h("p", {}, "Pilot version: your details are stored on this device only, and no password is needed. EngageXU sign-in will be added once Xavier grants access.")),
+    h("div", { class: "actions" }, h("button", { class: "btn primary block", type: "submit" }, "Continue")));
+  return [bar("", backBtn(() => go(needsIntro() ? "intro" : "home"))), form];
+}
+
+function scrHome() {
+  const org = saved.org || {};
+  const resumable = loadDraft();
+  const realPosts = (saved.history || []).filter(e => !e.example && typeof e.minutes === "number");
+  const hero = h("header", { class: "hero" },
+    h("button", { class: "org-btn", type: "button", onclick: () => go(saved.user ? "org" : "signin"), "aria-label": saved.user ? "Organization details" : "Sign in" },
+      badgeEl(40),
+      h("span", { class: "who" }, h("b", {}, org.name || "Add your organization"), h("span", { class: "caption" }, !saved.user ? (org.example ? "Example details. Tap to sign in." : "Tap to sign in") : `Signed in as ${saved.user.name}`)),
+      icon("chev", 18, "var(--faint)")),
+    h("h2", { class: "h-display" }, "Right the first time."),
+    h("p", { class: "lede" }, "Add your flyer. PostCheck fills in each EngageXU field and flags anything missing."),
+    h("button", { class: "btn primary", type: "button", onclick: () => go("add") }, "New event"));
+  const s = h("main", { class: "screen" },
+    resumable ? h("div", { class: "chk", style: "align-items:center" },
+      h("p", {}, h("b", {}, "Unfinished post. "), (resumable.d.fields.title && resumable.d.fields.title.value) || "Untitled event"),
+      h("button", { class: "copy-btn", type: "button", onclick: () => resumeDraft(resumable) }, "Resume"),
+      h("button", { class: "copy-btn", style: "color:var(--graphite)", type: "button", onclick: () => { clearDraft(); render(); } }, "Discard")) : null,
+    h("section", { style: "display:flex;flex-direction:column;gap:12px" },
+      h("h3", { class: "sec-h" }, "Post it again"),
+      (saved.history || []).length
+        ? h("div", { class: "list" }, saved.history.slice(0, 6).map(e => h("button", { class: "row", type: "button", onclick: () => startFromPast(e) },
+            h("span", { class: "txt" }, h("b", {}, e.values.title, e.example ? h("span", { class: "pill" }, "Example") : null), h("span", { class: "caption" }, [fmtWhen(e.values), e.values.location].filter(Boolean).join(" · "))),
+            h("span", { class: "go" }, "Post again"))))
+        : h("div", { class: "empty" }, h("p", { class: "caption" }, "Posts you make show up here, ready to post again."))),
+    h("button", { class: "row", type: "button", onclick: () => go("results") },
+      h("span", { class: "txt" }, h("b", {}, "Your results"), h("span", { class: "caption" }, realPosts.length ? `${realPosts.length} post${realPosts.length === 1 ? "" : "s"} timed. Time, fixes and send-backs.` : "Time per post, wrong details caught, send-backs")),
+      icon("chev", 20, "var(--graphite)")),
+    h("div", { class: "pilot", style: "margin-top:auto" }, icon("info", 18, "var(--graphite)"),
+      h("p", { class: "caption" }, "Pilot build. PostCheck isn't connected to EngageXU yet, so posting is simulated and you copy the checked details into EngageXU. Not affiliated with Xavier University or CampusGroups."))
+  );
+  return [hero, s];
+}
+
+function scrAdd() {
+  const photoOk = imagesPossible();
+  const opt = (ic, title, sub, onclick, disabled) => h("button", { class: "row", type: "button", onclick, disabled, style: disabled ? "opacity:.45;cursor:not-allowed" : null },
+    h("span", { class: "ico" }, icon(ic)), h("span", { class: "txt" }, h("b", {}, title), h("span", { class: "caption" }, sub)), icon("chev", 20, "var(--graphite)"));
+  const pastList = (saved.history || []);
+  return [bar("New event", backBtn("home")), h("main", { class: "screen" },
+    h("h2", { class: "h-title" }, "What do you have?"),
+    h("div", { class: "list" },
+      opt("camera", "Take a photo", "Point at the flyer", () => document.getElementById("pick-camera").click(), !photoOk),
+      opt("file", "Upload an image or PDF", "PNG, JPG or PDF. Export Canva designs first.", () => document.getElementById("pick-file").click(), !photoOk),
+      opt("text", "Type or paste text", "A few lines: day, time, place, food, speaker", () => go("text")),
+      opt("repeat", "Start from a past event", pastList.length ? `${pastList.length} saved` : "Nothing posted yet", () => go("past"), !pastList.length)),
+    claudeChecked && !photoOk ? h("p", { class: "caption" }, "Reading images isn't available in this view. Typing still works.") : null,
+    photoOk ? h("p", { class: "caption" }, (useOCR() ? "Flyers are read on this device, so nothing leaves your browser. " : "") + "You can also paste a screenshot or drop a file anywhere on this screen.") : null,
+    photoOk ? h("div", { class: "pilot" }, icon("spark", 18, "var(--graphite)"), h("div", { style: "display:flex;flex-direction:column;gap:4px" },
+      h("p", { class: "caption" }, "No flyer handy? Try a made-up one. It leaves out the date and end time on purpose."),
+      h("button", { class: "link-btn", type: "button", style: "align-self:flex-start;padding:0", onclick: async () => readFile(await sampleFlyer()) }, "Try a sample flyer"))) : null
+  )];
+}
+
+function scrText() {
+  const ta = h("textarea", { id: "paste-text", placeholder: "Guest Speaker Night\nThursday Nov 19, 7–8:30 PM\nSmith Hall 204\nFree pizza" });
+  try { ta.value = sessionStorage.getItem("postcheck.draftText") || ""; } catch (e) {}
+  ta.addEventListener("input", () => { try { sessionStorage.setItem("postcheck.draftText", ta.value); } catch (e) {} });
+  const go2 = () => { const v = ta.value.trim(); if (v) readText(v); else ta.focus(); };
+  return [bar("Type or paste", backBtn("add")), h("main", { class: "screen" },
+    h("div", { class: "field" }, h("label", { class: "h-title", for: "paste-text" }, "Tell PostCheck about the event"), h("p", { class: "caption" }, "Day, time, place, food, who's speaking. Whatever you have."), ta),
+    h("div", { class: "actions" }, h("button", { class: "btn primary block", type: "button", onclick: go2 }, "Continue"))
+  )];
+}
+
+function scrPast() {
+  return [bar("Past events", backBtn("add")), h("main", { class: "screen" },
+    h("p", { class: "muted" }, "PostCheck copies the details and asks for the new date and time."),
+    h("div", { class: "list" }, (saved.history || []).map(e => h("button", { class: "row", type: "button", onclick: () => startFromPast(e) },
+      h("span", { class: "txt" }, h("b", {}, e.values.title, e.example ? h("span", { class: "pill" }, "Example") : null), h("span", { class: "caption" }, [fmtWhen(e.values), e.values.location].filter(Boolean).join(" · "))),
+      icon("chev", 20, "var(--graphite)"))))
+  )];
+}
+
+function scrReading() {
+  const d = S.draft;
+  const cancel = () => { if (S.ctl) S.ctl.abort(); S.draft = null; go("add"); };
+  const preview = h("div", { class: "scan" }, d.flyerUrl ? h("img", { src: d.flyerUrl, alt: "Your flyer" }) : h("div", { class: "textcard" }, d.text || " "));
+  if (S.error) {
+    return [bar("Reading", backBtn(cancel)), h("main", { class: "screen" },
+      h("div", { class: "reading" }, h("div", { style: "width:160px" }, preview.querySelector("img") ? h("img", { src: d.flyerUrl, alt: "Your flyer", style: "width:100%;border-radius:8px;border:1px solid var(--rule)" }) : null)),
+      h("div", { class: "error", role: "alert" }, S.error.msg),
+      h("div", { class: "actions" },
+        h("button", { class: "btn primary block", type: "button", onclick: () => go("text") }, "Type the details"),
+        h("button", { class: "btn quiet block", type: "button", onclick: () => go("add") }, "Back to choices")))];
+  }
+  return [bar("Reading", null, h("button", { class: "link-btn", type: "button", onclick: cancel }, "Cancel")), h("main", { class: "screen" },
+    h("div", { class: "reading" }, preview,
+      h("h2", { class: "h-title" }, "Pulling out the details"),
+      h("p", { class: "muted", id: "reading-status" }, sampleFn ? "Date, time, place, tags. This takes a few seconds. If asked, allow PostCheck to use Claude." : d.flyerUrl ? "Getting the text reader ready." : "Date, time, place. Anything unclear becomes a question.")))];
+}
+
+function scrQuestions() {
+  const d = S.draft; const k = S.queue[S.qi]; const f = FIELD[k];
+  const qd = d.questions[k] || {};
+  const cur = d.fields[k];
+  const progress = h("div", { class: "progress", "aria-label": `Question ${S.qi + 1} of ${S.queue.length}` }, S.queue.map((_, i) => h("i", { class: i <= S.qi ? "on" : "" })));
+  const quote = cur.quote ? h("p", { class: "quoted" }, h("span", { class: "scrap" + (d.origin === "text" ? " typed" : "") }, cur.quote), d.origin === "text" ? "in your text" : "on the flyer") : null;
+  const opts = { options: qd.options, suggest: qd.suggest };
+  const back = S.qi > 0 ? backBtn(() => { S.qi--; render(); }) : backBtn(() => go(d.origin === "past" ? "home" : "add"));
+  return [bar(`${S.qi + 1} of ${S.queue.length}`, back, h("button", { class: "link-btn", type: "button", onclick: () => { d.fields[k] = Object.assign({}, d.fields[k], { value: FIELD[k].kind === "tags" ? [] : null, src: null, sure: false, ok: false }); nextQuestion(); } }, "Skip for now")),
+    h("main", { class: "screen" }, progress,
+      h("div", { style: "display:flex;flex-direction:column;gap:8px" },
+        f.group ? h("p", { class: "caption" }, f.group) : null,
+        h("h2", { class: "h-title" }, qd.q || f.q), quote),
+      inputFor(k, cur.value, v => { answer(k, v); nextQuestion(); }, opts))];
+}
+
+function sourceEl(k, fd) {
+  const d = S.draft;
+  if (fd.src === "flyer" && fd.box && d.img) {
+    const [x0, y0, x1, y1] = fd.box; const iw = d.img.naturalWidth, ih = d.img.naturalHeight;
+    const pad = 0.01; const sx = Math.max(0, (x0 - pad) * iw), sy = Math.max(0, (y0 - pad) * ih);
+    const sw = Math.min(iw - sx, (x1 - x0 + 2 * pad) * iw), sh = Math.min(ih - sy, (y1 - y0 + 2 * pad) * ih);
+    const H = 72, W = Math.max(24, Math.min(360, Math.round(sw / sh * H)));
+    const c = h("canvas", { width: W, height: H, "aria-hidden": "true" });
+    c.getContext("2d").drawImage(d.img, sx, sy, sw, sh, 0, 0, W, H);
+    return h("span", { class: "src" }, h("button", { class: "crop", type: "button", "aria-label": `See where ${FIELD[k].label.toLowerCase()} came from on the flyer`, onclick: e => { e.stopPropagation(); openZoom(fd.box); } }, c), "From the flyer");
+  }
+  if (fd.src === "flyer-image" && d.flyerUrl) return h("span", { class: "src" }, h("button", { class: "crop", style: "height:auto;border:0;background:none", type: "button", "aria-label": "See the full flyer", onclick: e => { e.stopPropagation(); openZoom(null); } }, h("img", { class: "thumb", src: d.flyerUrl, alt: "" })), "Your flyer");
+  if ((fd.src === "flyer" || fd.src === "text") && fd.quote)
+    return h("span", { class: "src" }, h("span", { class: "scrap" + (fd.src === "text" ? " typed" : "") }, fd.quote), fd.src === "flyer" ? "From the flyer" : "From your text");
+  const label = {
+    flyer: "From the flyer", text: "From your text",
+    answer: "You answered", edit: "You edited", past: "From a past event", org: "From your organization's details"
+  }[fd.src];
+  return label ? h("span", { class: "src" + (fd.src === "answer" || fd.src === "edit" ? " asked" : "") }, label) : null;
+}
+
+function scrReview() {
+  const d = S.draft; const b = blockers(d);
+  const fields = []; let lastGroup = null;
+  for (const f of FIELDS) {
+    const fd = d.fields[f.k];
+    if (!f.req && isEmpty(fd.value)) continue;
+    if ((f.group || null) !== lastGroup) {
+      lastGroup = f.group || null;
+      if (lastGroup && lastGroup !== f.label) fields.push(h("h3", { class: "group-h" }, lastGroup));
+      if (GROUP_NOTES[lastGroup]) fields.push(h("p", { class: "caption", style: "padding-top:8px" }, GROUP_NOTES[lastGroup]));
+    }
+    const blank = f.req && isEmpty(fd.value);
+    const flag = blank || needsCheck(fd);
+    const valText = display(f.k, fd.value);
+    const body = h("button", { class: "body", type: "button", onclick: () => openEdit(f.k), "aria-label": `${f.label}: ${valText || "blank"}. Edit.` },
+      h("span", { class: "k" }, f.label + (blank ? " · needs an answer" : flag ? " · check this" : "")),
+      h("span", { class: "v" + (blank ? " blank" : "") + (f.kind === "longtext" ? " desc" : "") }, blank ? "Tap to fill in" : valText),
+      blank ? null : sourceEl(f.k, fd));
+    let mark;
+    if (blank) mark = null;
+    else if (!fd.sure) mark = h("button", { class: "ck" + (fd.ok ? " on" : ""), type: "button", "aria-pressed": String(!!fd.ok), "aria-label": fd.ok ? `${f.label} confirmed. Tap to undo.` : `Confirm ${f.label} matches`, html: `<svg viewBox="0 0 24 24">${ICONS.check}</svg>`, onclick: () => { fd.ok = !fd.ok; render(); } });
+    else mark = h("span", { class: "ok-mark", "aria-hidden": "true", html: `<svg width="20" height="20" viewBox="0 0 24 24">${ICONS.check}</svg>` });
+    fields.push(h("div", { class: "f" + (flag && !(fd.ok) ? " flag" : "") }, body, mark));
+  }
+  const checks = runChecks(d);
+  const ready = !b.flagged && !b.blank && !b.problems;
+  const msg = ready ? "Every field is checked. Ready to post." : [b.problems ? `${b.problems} to fix` : null, b.flagged ? `${b.flagged} to check` : null, b.blank ? `${b.blank} blank` : null].filter(Boolean).join(" · ") + ". Highlighted below.";
+  const checkList = checks.length ? h("section", { class: "checks", "aria-label": "PostCheck checks" },
+    checks.map(c => h("div", { class: "chk" + (c.block ? " block" : "") },
+      icon(c.block ? "info" : "info", 18, c.block ? "var(--red)" : "var(--amber)"),
+      h("p", {}, h("b", {}, FIELD[c.k].label + ". "), c.msg),
+      h("button", { class: "copy-btn", type: "button", onclick: () => openEdit(c.k) }, c.block ? "Fix" : "Edit")))) : null;
+  return [bar("Review", backBtn(() => { if (S.posting) return; if (S.queue.length) { S.qi = S.queue.length - 1; go("questions"); } else go(d.origin === "past" ? "home" : "add"); })),
+    h("main", { class: "screen" },
+      h("div", { style: "display:flex;flex-direction:column;gap:4px" },
+        h("h2", { class: "h-title" }, d.fields.title.value || "Untitled event"),
+        h("p", { class: "muted" }, [fmtWhen(Object.fromEntries(FIELDS.map(f => [f.k, d.fields[f.k].value]))), d.fields.location.value].filter(Boolean).join(" · ") || "Date, time and place still needed")),
+      h("div", { class: "summary" + (ready ? "" : " warn"), role: "status" }, icon(ready ? "check" : "info", 20, ready ? "var(--blue)" : "var(--amber)"), h("p", { class: "label" }, msg)),
+      checkList,
+      h("p", { class: "caption" }, "Fields in EngageXU's order. Tap a field to edit it. Tap a flyer crop to see where it came from."),
+      h("div", { class: "fields" }, fields),
+      S.error ? h("div", { class: "error", role: "alert" }, S.error.msg) : null,
+      h("div", { class: "sticky-foot" },
+        h("button", { class: "btn primary block", type: "button", disabled: !ready || S.posting, onclick: post }, S.posting ? "Saving…" : "Ready for EngageXU"),
+        h("p", { class: "caption fine" }, "Pilot: PostCheck can't post to EngageXU yet. Next you copy these fields into EngageXU and submit there.")))];
+}
+
+function scrPosted() {
+  const e = S.lastPost; const v = e.values;
+  const rows = pasteRows(v); let lastSec = null;
+  const copyRows = [];
+  for (const r of rows) {
+    if (r.section !== lastSec) { lastSec = r.section; copyRows.push(h("h3", { class: "group-h" }, r.section)); if (GROUP_NOTES[r.section]) copyRows.push(h("p", { class: "caption", style: "padding-top:8px" }, GROUP_NOTES[r.section])); }
+    copyRows.push(h("div", { class: "copy-row" }, h("div", { class: "txt" }, h("p", { class: "caption" }, r.label), h("p", { class: "v" }, r.text), r.how ? h("p", { class: "caption", style: "font-weight:400" }, r.how) : null),
+      h("button", { class: "copy-btn", type: "button", onclick: ev => copyText(r.text, ev.currentTarget), "aria-label": `Copy ${r.label}` }, "Copy")));
+  }
+  const ENGAGEXU_URL = "https://engagexu.campusgroups.com/home_login";
+  return [bar("Ready to paste"), h("main", { class: "screen" },
+    h("div", { class: "done" },
+      h("div", { class: "seal", "aria-hidden": "true", html: '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#2563EB"/><path class="tickpath" d="M20 33l8 8 16-17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>' }),
+      h("h2", { class: "h-title" }, "Checked. Now paste it into EngageXU"),
+      h("div", { style: "display:flex;flex-direction:column;gap:2px" }, h("p", { class: "label" }, v.title), h("p", { class: "muted" }, fmtWhen(v)), h("p", { class: "muted" }, v.location))),
+    h("p", { class: "caption fine" }, `Done in ${e.minutes < 1 ? Math.round(e.minutes * 60) + " seconds" : e.minutes.toFixed(1) + " minutes"}. ${e.fixes ? `You fixed ${e.fixes} detail${e.fixes === 1 ? "" : "s"} before posting.` : "Nothing needed fixing."}`),
+    h("div", { class: "pilot" }, icon("info", 18, "var(--graphite)"), h("p", { class: "caption" }, "Nothing has been sent to EngageXU. In EngageXU, open your organization, go to Events, then Create Event, and fill it in from the list below, which follows the form's sections. Then press Create Event and Proceed to Approval Form, or Save as Draft. Your event isn't posted until you do. Saved to your past events for next time.")),
+    h("a", { class: "btn primary block", href: ENGAGEXU_URL, target: "_blank", rel: "noopener", style: "text-decoration:none" }, "Open EngageXU"),
+    h("div", { style: "display:flex;gap:8px;flex-wrap:wrap" },
+      h("button", { class: "btn secondary", style: "flex:1;min-height:44px;font-size:15px", type: "button", onclick: ev => copyText(rows.map(r => `${r.section} · ${r.label}: ${r.text}`).join("\n"), ev.currentTarget) }, "Copy all"),
+      v.date && v.start && v.end ? h("button", { class: "btn secondary", style: "flex:1;min-height:44px;font-size:15px", type: "button", onclick: () => saveICS(e) }, "Add to calendar") : null),
+    h("section", {}, copyRows),
+    h("div", { class: "actions" },
+      h("button", { class: "btn secondary block", type: "button", onclick: () => { S.draft = null; go("add"); } }, "New event"),
+      h("button", { class: "btn quiet block", type: "button", onclick: () => { S.draft = null; go("home"); } }, "Home")))];
+}
+
+function scrOrg() {
+  const o = saved.org || {};
+  const inp = (id, label, val, type = "text") => h("div", { class: "field" }, h("label", { class: "label", for: id }, label), h("input", { id, type, value: o.example ? "" : (val || ""), placeholder: val || "" }));
+  const save = () => {
+    const get = id => document.getElementById(id).value.trim();
+    const next = { name: get("org-name"), advisor: get("org-advisor"), email: get("org-email"), room: get("org-room") };
+    if (o.example) for (const k of Object.keys(next)) if (!next[k]) next[k] = o[k];
+    saved.org = next; persist(); toast("Saved"); go("home");
+  };
+  return [bar("Organization", backBtn("home")), h("main", { class: "screen" },
+    h("p", { class: "muted" }, "PostCheck adds these to every post."),
+    o.example ? h("p", { class: "caption" }, "Showing example details as hints. Anything you leave blank keeps the example.") : null,
+    inp("org-name", "Organization name", o.name), inp("org-advisor", "Advisor", o.advisor), inp("org-email", "Contact email", o.email, "email"), inp("org-room", "Usual meeting room", o.room),
+    h("div", { class: "actions" }, h("button", { class: "btn primary block", type: "button", onclick: save }, "Save"),
+      saved.user ? h("button", { class: "btn quiet block", type: "button", onclick: signOut }, `Sign out ${saved.user.email}`) : null))];
+}
+/* Signing out removes who you are and your organization from this browser. Past posts and results stay. */
+function signOut() {
+  if (!confirm("Sign out? Your organization details are removed from this browser. Past posts and results stay.")) return;
+  delete saved.user; delete saved.lookingAround; saved.org = EXAMPLE_ORG; persist();
+  S.draft = null; clearDraft(); toast("Signed out"); go("intro");
+}
+
+/* ---------- Sheets ---------- */
+function closeSheet() { document.querySelectorAll(".scrim").forEach(s => s.remove()); }
+function sheet(...kids) {
+  closeSheet();
+  const sc = h("div", { class: "scrim", onclick: e => { if (e.target === sc) closeSheet(); } }, h("div", { class: "sheet", role: "dialog", "aria-modal": "true" }, ...kids));
+  document.body.append(sc);
+  const first = sc.querySelector("input, textarea, button.choice, button.chip");
+  if (first) setTimeout(() => first.focus(), 50);
+  sc.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+}
+function openEdit(k) {
+  const f = FIELD[k]; const fd = S.draft.fields[k];
+  if (f.kind === "image") { openZoom(null); return; }
+  sheet(
+    h("div", { style: "display:flex;justify-content:space-between;align-items:center" }, h("h2", { class: "h-title" }, f.label), h("button", { class: "link-btn", type: "button", onclick: closeSheet }, "Cancel")),
+    fd.quote ? h("p", { class: "quoted" }, h("span", { class: "scrap" + (fd.src === "text" ? " typed" : "") }, fd.quote), fd.src === "text" ? "in your text" : "on the flyer") : null,
+    inputFor(k, fd.value, v => {
+      const same = JSON.stringify(v) === JSON.stringify(fd.value);
+      if (!same && !isEmpty(fd.value) && ["flyer", "text", "past"].includes(fd.src)) S.draft.fixes = (S.draft.fixes || 0) + 1;
+      S.draft.fields[k] =Object.assign({}, fd, same ? { ok: true } : { value: v, src: "edit", sure: true, ok: true, box: null, quote: null });
+      closeSheet(); render();
+    }, { doneLabel: "Save" })
+  );
+}
+function openZoom(box) {
+  const d = S.draft; if (!d.flyerUrl) return;
+  const inner = h("div", { class: "inner" }, h("img", { src: d.flyerUrl, alt: "Your flyer" }));
+  if (box) {
+    const [x0, y0, x1, y1] = box;
+    inner.append(h("div", { class: "hl", style: `left:${x0 * 100}%;top:${y0 * 100}%;width:${(x1 - x0) * 100}%;height:${(y1 - y0) * 100}%` }));
+    const scale = Math.min(2.2, Math.max(1, 0.6 / Math.max(x1 - x0, y1 - y0)));
+    inner.style.transformOrigin = `${(x0 + x1) / 2 * 100}% ${(y0 + y1) / 2 * 100}%`;
+    requestAnimationFrame(() => requestAnimationFrame(() => { inner.style.transform = `scale(${scale})`; }));
+  }
+  sheet(h("div", { style: "display:flex;justify-content:space-between;align-items:center" }, h("h2", { class: "h-title" }, "Flyer"), h("button", { class: "link-btn", type: "button", onclick: closeSheet }, "Done")),
+    h("div", { class: "zoom" }, inner),
+    box ? h("button", { class: "btn secondary block", type: "button", onclick: () => { inner.style.transform = inner.style.transform ? "" : `scale(${Math.min(2.2, Math.max(1, 0.6 / Math.max(box[2] - box[0], box[3] - box[1])))})`; } }, "Zoom in or out") : null);
+}
+
+/* ---------- Render ---------- */
+const SCREENS = { intro: scrIntro, signin: scrSignin, home: scrHome, add: scrAdd, text: scrText, past: scrPast, reading: scrReading, questions: scrQuestions, review: scrReview, posted: scrPosted, org: scrOrg, results: scrResults };
+function render() {
+  if (needsIntro() && !["intro", "signin"].includes(S.screen)) S.screen = "intro";
+  if (S.screen === "intro" && !needsIntro()) S.screen = "home";
+  if (["reading", "questions", "review"].includes(S.screen) && !S.draft) S.screen = "home";
+  if (S.screen === "questions" && !S.queue[S.qi]) S.screen = "review";
+  if (S.screen === "posted" && !S.lastPost) S.screen = "home";
+  try { $app.replaceChildren(...SCREENS[S.screen]()); }
+  catch (e) {
+    // Never leave a blank page. Keep the draft so nothing typed is lost, and offer a way back.
+    console.error("PostCheck: couldn't show " + S.screen, e);
+    closeSheet();
+    $app.replaceChildren(bar("PostCheck"), h("main", { class: "screen" },
+      h("h2", { class: "h-title" }, "Something went wrong on this screen"),
+      h("p", { class: "muted" }, "Your unfinished post is still saved. Go home and tap Resume, or start a new event."),
+      h("div", { class: "actions" },
+        h("button", { class: "btn primary block", type: "button", onclick: () => { S.draft = null; S.error = null; go("home"); } }, "Go home"),
+        h("button", { class: "btn quiet block", type: "button", onclick: () => { clearDraft(); S.draft = null; S.error = null; go("home"); } }, "Discard the unfinished post"))));
+    return;
+  }
+  saveDraft();
+  /* Keep the phone's back button inside the app: each screen is a #name in the address. */
+  const want = S.screen === "home" ? "" : S.screen;
+  if (location.hash.slice(1) !== want) { try { if (want) location.hash = want; else history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+}
+window.addEventListener("hashchange", () => {
+  const t = location.hash.slice(1) || "home";
+  if (t === S.screen || !SCREENS[t]) return;
+  if (S.screen === "reading" && S.ctl) S.ctl.abort();
+  closeSheet();
+  if (t === "reading") { S.draft = null; S.screen = "add"; }
+  else S.screen = t;
+  // Back from Review lands on "questions" with every question answered. Show the last one instead of
+  // bouncing straight back to Review, which trapped the back button.
+  if (t === "questions" && !S.queue[S.qi] && S.queue.length) S.qi = S.queue.length - 1;
+  S.error = null; render();
+});
+
+/* ---------- Results: the numbers Problem.md says decide whether PostCheck works ---------- */
+function scrResults() {
+  const posts = (saved.history || []).filter(e => !e.example && typeof e.minutes === "number");
+  const mins = posts.map(e => e.minutes).sort((a, b) => a - b);
+  const median = mins.length ? (mins.length % 2 ? mins[(mins.length - 1) / 2] : (mins[mins.length / 2 - 1] + mins[mins.length / 2]) / 2) : null;
+  const fixes = posts.reduce((n, e) => n + (e.fixes || 0), 0);
+  const back = posts.filter(e => e.sentBack).length;
+  const fmtMin = m => m < 1 ? `${Math.round(m * 60)} s` : `${m.toFixed(1)} min`;
+  const stat = (num, label, note) => h("div", { class: "stat" }, h("b", {}, num), h("span", { class: "label" }, label), note ? h("span", { class: "caption" }, note) : null);
+  const ORIGIN = { flyer: "Flyer", text: "Typed text", past: "Past event" };
+  return [bar("Your results", backBtn("home")), h("main", { class: "screen" },
+    h("p", { class: "muted" }, "Problem.md calls a post solved when every field matches, staff don't send it back, and it takes no longer than 10–15 minutes by hand."),
+    posts.length ? h("div", { class: "stats" },
+      stat(median != null ? fmtMin(median) : "–", "Median time per post", median != null ? (median <= 10 ? "Under the 10–15 min by hand" : median <= 15 ? "Within the 10–15 min by hand" : "Slower than by hand") : null),
+      stat(String(fixes), "Wrong details caught", "Fields you changed after PostCheck read them"),
+      stat(`${back} of ${posts.length}`, "Sent back by staff", "Mark any post campus staff returned")) : null,
+    posts.length ? h("div", { class: "list" }, posts.map(e => h("div", { class: "row", style: "cursor:default" },
+      h("span", { class: "txt" }, h("b", {}, e.values.title), h("span", { class: "caption" }, `${ORIGIN[e.origin] || "Post"} · ${fmtMin(e.minutes)} · ${e.fixes || 0} fixed`)),
+      h("button", { class: "chip", type: "button", "aria-pressed": String(!!e.sentBack), onclick: () => { e.sentBack = !e.sentBack; persist(); render(); } }, e.sentBack ? "Sent back" : "Approved")))) :
+      h("div", { class: "empty" }, h("p", { class: "caption" }, "Post an event with PostCheck and its time and fixes show up here. Example posts don't count.")),
+    posts.length ? h("div", { class: "actions" },
+      h("button", { class: "btn secondary block", type: "button", onclick: () => {
+        const q = s => /[",\n]/.test(s) ? `"${String(s).replace(/"/g, '""')}"` : String(s);
+        const rows = [["Event", "Date", "Started from", "Minutes", "Mismatches found", "Rejected?"]].concat(posts.map(e => [e.values.title, e.values.date, ORIGIN[e.origin] || "", e.minutes.toFixed(1), e.fixes || 0, e.sentBack ? "Yes" : "No"]));
+        saveFile("postcheck-results.csv", rows.map(r => r.map(q).join(",")).join("\r\n"), "text/csv");
+      } }, "Export as CSV"),
+      h("p", { class: "caption fine" }, "Same columns as the baseline table in evidence.md.")) : null)];
+}
+document.getElementById("pick-camera").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; readFile(f); });
+document.getElementById("pick-file").addEventListener("change", e => { const f = e.target.files[0]; e.target.value = ""; readFile(f); });
+document.addEventListener("paste", e => {
+  if (!["home", "add"].includes(S.screen)) return;
+  const items = [...((e.clipboardData && e.clipboardData.items) || [])];
+  const img = items.find(i => i.type.startsWith("image/"));
+  if (img && imagesPossible()) { e.preventDefault(); readFile(img.getAsFile()); return; }
+  const txt = e.clipboardData && e.clipboardData.getData("text");
+  if (txt && txt.trim().length > 8) { e.preventDefault(); readText(txt.trim()); }
+});
+document.addEventListener("dragover", e => { if (S.screen === "add" || S.screen === "home") { e.preventDefault(); document.body.classList.add("dragging"); } });
+document.addEventListener("dragleave", e => { if (!e.relatedTarget) document.body.classList.remove("dragging"); });
+document.addEventListener("drop", e => {
+  document.body.classList.remove("dragging");
+  if (S.screen !== "add" && S.screen !== "home") return;
+  e.preventDefault();
+  const f = e.dataTransfer && e.dataTransfer.files[0];
+  if (f && imagesPossible()) readFile(f);
+});
+{ const start = location.hash.slice(1); if (["signin", "add", "text", "past", "org", "results"].includes(start)) S.screen = start; }
+render();
+</script>
+</body></html>
